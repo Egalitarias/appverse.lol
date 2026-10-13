@@ -26,6 +26,9 @@ else
     | ssh "$HOST" "tar xf - -C $BASE/builds/$SHA.partial --no-same-owner && chmod -R a+rX $BASE/builds/$SHA.partial && mv $BASE/builds/$SHA.partial $BASE/builds/$SHA"
 fi
 
+# The analytics report script runs on the server, outside the builds (docs/analytics.md); keep its copy there current.
+ssh "$HOST" "mkdir -p $BASE/bin $BASE/stats && cat > $BASE/bin/analytics-report.mjs" < tools/analytics-report.mjs
+
 # Point `current` at the build (atomic: make a new link, then rename it over the old one). The build it replaces is remembered for the rollback below.
 PREV=$(ssh "$HOST" "basename \$(readlink $BASE/current) 2>/dev/null || true")
 point() { ssh "$HOST" "cd $BASE && ln -sfn builds/$1 current.tmp && mv -T current.tmp current"; }

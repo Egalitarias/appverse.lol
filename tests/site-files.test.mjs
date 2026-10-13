@@ -20,10 +20,11 @@ test('the site does not serve drafts, tests, docs or dotfiles', () => {
   assert.deepEqual(secret, []);
 });
 
-test('the sitemap lists exactly the pages the site serves', () => {
+test('the sitemap lists exactly the public pages the site serves (a noindex page stays off it)', () => {
   const xml = readFileSync(resolve(root, 'sitemap.xml'), 'utf8');
   const listed = [...xml.matchAll(/<loc>https:\/\/appverse\.lol\/([^<]*)<\/loc>/g)].map((m) => m[1] || 'index.html');
-  assert.deepEqual([...listed].sort(), [...pages].sort());
+  const isPublic = (p) => !/<meta name="robots" content="noindex">/.test(readFileSync(resolve(root, p), 'utf8'));
+  assert.deepEqual([...listed].sort(), pages.filter(isPublic).sort());
 });
 
 test('every page, script and stylesheet the served pages link to is served', () => {
