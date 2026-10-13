@@ -1,13 +1,11 @@
 <!--
 DRAFT. Not legal advice: have a lawyer review it before the repo goes public. To resolve before publishing:
-  - [OWNER]: the legal name that owns the marks (you, or a company once one exists).
-  - [CONTACT EMAIL]: a mailbox you read, for permission requests.
   - Search for conflicting "Appverse" marks and consider registering it (this draft claims only the rights that come from using the name).
 -->
 
 # Appverse trademark policy
 
-"Appverse", the Appverse logo and the domain appverse.lol (together, the **Appverse marks**) belong to [OWNER].
+"Appverse", the Appverse logo and the domain appverse.lol (together, the **Appverse marks**) belong to Gary Davies.
 
 The software in this repository is licensed under the terms in [LICENSE](LICENSE). That licence covers the code. **It does not give you any right to
 use the Appverse marks.** This policy says what you may and may not do with them.
@@ -43,7 +41,7 @@ that people build.
 
 ## Asking permission, and reporting misuse
 
-For permission, or to report use you think breaks this policy, write to [CONTACT EMAIL]. Say what you want to do and where the name will appear.
+For permission, or to report use you think breaks this policy, write to GaryDaviesHome@Gmail.com. Say what you want to do and where the name will appear.
 
 ## Changes
 

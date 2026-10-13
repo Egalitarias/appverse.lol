@@ -1,7 +1,5 @@
 <!--
 DRAFT. Not legal advice: have a lawyer review the "Licensing your contribution" section before the repo accepts outside pull requests. To resolve:
-  - [OWNER]: who receives the contributor licence (you, or a company once one exists).
-  - [CONTACT EMAIL]: a mailbox for security reports.
   - Decide how agreement is recorded: a CLA bot on pull requests, or the sign-off line described below.
   - If the licence changes, update "What this repository is" and "Licensing your contribution".
 -->
@@ -22,7 +20,7 @@ The code runs in browsers and in Node 20+, with **no dependencies and no build s
 ## Reporting a security problem
 
 The sandbox is the point of the project, so please **do not open a public issue** for a way out of it (reading the page, running network code, reaching
-storage, escaping the iframe, getting round the CSP, a zip or manifest that is not rejected). Write to [CONTACT EMAIL] with the steps to reproduce. We will
+storage, escaping the iframe, getting round the CSP, a zip or manifest that is not rejected). Write to GaryDaviesHome@Gmail.com with the steps to reproduce. We will
 reply, fix it and credit you if you wish. Other bugs are fine as normal issues.
 
 ## Before you start
@@ -65,7 +63,7 @@ You keep the copyright in what you write. By sending a pull request you agree th
 
 1. You wrote it, or have the right to submit it, and it does not include anyone else's code or content unless you say so and it is under a compatible
    licence.
-2. You grant [OWNER] a perpetual, worldwide, non-exclusive, royalty-free, irrevocable licence to use, copy, modify, publish, distribute and **sublicense**
+2. You grant Gary Davies a perpetual, worldwide, non-exclusive, royalty-free, irrevocable licence to use, copy, modify, publish, distribute and **sublicense**
    your contribution, **under this project's licence or any other terms, including commercial ones**, as part of Appverse and any later version of it.
 3. Your contribution is provided "as is", without warranty.
 
