@@ -1,0 +1,5 @@
+html, body { margin: 0; height: 100%; font: 16px system-ui, sans-serif; }
+main { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; }
+h1 { font-size: 64px; margin: 0; }
+button { font: inherit; padding: 8px 18px; }
+#status { color: #666; min-height: 1.2em; }

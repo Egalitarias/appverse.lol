@@ -48,10 +48,11 @@ const saved = await appverse.storage.get("notes");</code></pre>
 
     <h2>4. Check and pack</h2>
     <p>Easiest: drop the folder on <a href="pack.html">Pack an app</a>. It writes the manifest for you, checks the app, lets you test it in the sandbox and downloads the <code>.applet</code>. Or from the command line:</p>
-    <pre><code>applet check my-app            # missing files, external URLs, own CSP, blocked APIs
+    <pre><code>applet new my-app              # start from the template
+applet check my-app            # missing files, external URLs, own CSP, blocked APIs
 applet pack my-app notes.applet
 applet dev my-app              # open it in the sandbox, reload on save</code></pre>
-    <p class="small">The <code>applet</code> command is not written yet.</p>
+    <p class="small">The <code>applet</code> command is <code>tools/applet.mjs</code> in the <a href="https://github.com/Egalitarias/appverse.lol">Appverse repo</a> (Node 20+, no install): <code>node tools/applet.mjs new my-app</code> starts an app from a template, and <code>check</code>, <code>pack</code>, <code>dev</code>, <code>inspect</code> and <code>unpack</code> work as above. <code>--strict</code> makes warnings fail too.</p>
 
     <h2>What does not work</h2>
     <ul>

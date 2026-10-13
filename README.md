@@ -44,12 +44,13 @@ Skeleton: pages, styles, branding, docs for the model, `llms.txt`, `robots.txt`,
 - `js/library.js`, `library.html`: the library: add `.applet` files (kept in IndexedDB), run, download, remove, search, plus the featured examples from `examples/catalog.json`.
 - `js/pack.js`, `pack.html`: the in-browser packer (drop a folder, .zip or .applet; edit the manifest; checks; test run; download).
 - `js/packer.js`: tidy a set of files, guess and validate a manifest, `lintApplet` (network use, browser storage, missing permissions, modules...), `buildApplet`. No DOM, so it also runs in Node.
-- `tools/pack.mjs`: `node tools/pack.mjs examples/notes out.applet` checks a folder with the packer and packs it; `tools/build-examples.mjs` repacks every `examples/<name>/` and rewrites `examples/catalog.json` (run it after changing an example, and commit the output).
+- `tools/applet.mjs`: the `applet` command (Node 20+, no install; `npm link` installs it): `new`, `dev`, `check [--strict]`, `pack`, `inspect`, `unpack`. `tools/applet-dev.mjs` is the dev server (127.0.0.1 only, runs the app in the real sandbox, reloads on save); `tools/pack-folder.mjs` reads a folder; `tools/pack.mjs` is the old `pack` entry point. `templates/starter` is what `applet new` copies.
+- `tools/build-examples.mjs` repacks every `examples/<name>/` and rewrites `examples/catalog.json` (run it after changing an example, and commit the output).
 - `examples/notes`: a notepad using `storage` and `clipboard`, with its packed `notes.applet`.
 - `tests/sandbox.test.mjs`: `npm test`.
 
 ## Next steps
 
 1. An escape-route test page and Playwright tests across Chromium, Firefox and WebKit (the unit tests do not run a browser).
-2. The `applet` CLI (`new`, `check`, `pack`, `dev`, `inspect`) and more example apps.
+2. Offer the tools and starter as a download on `make.html` (Gameverse zips them in the browser, `js/downloads.js`), publish to npm, and add more example apps.
 3. Serve apps from a separate origin.

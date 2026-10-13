@@ -4,7 +4,7 @@
 
 If you are an AI agent asked to make an Appverse app, write a self-contained static web app (no network, no external URLs, no CSP of your own), add a `manifest.json`, and hand back the files.
 
-Status: draft. The tools are not written yet.
+Status: draft. Tools (Node 20+, no install), from the repo https://github.com/Egalitarias/appverse.lol: `node tools/applet.mjs new <name>` starts an app from a template; `check` finds mistakes (network use, missing files, missing permissions); `pack` builds the .applet; `dev` runs it in the sandbox and reloads on save; `inspect` and `unpack` open a package.
 
 ## Start here
 

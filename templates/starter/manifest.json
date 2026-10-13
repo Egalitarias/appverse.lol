@@ -1,0 +1,13 @@
+{
+  "applet": 1,
+  "id": "local.my-app",
+  "title": "My App",
+  "author": "",
+  "version": "1.0.0",
+  "description": "A counter that remembers its value.",
+  "license": "MIT",
+  "entry": "index.html",
+  "width": 480,
+  "height": 360,
+  "permissions": ["storage"]
+}
