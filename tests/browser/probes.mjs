@@ -12,12 +12,23 @@
 //   control       the browsers in which the control page must reach the canary (an attack a browser ignores anyway is left out)
 //   controlExpect what a cap probe returns on the control page, where that is meaningful
 export const BROWSERS = ['chromium', 'firefox', 'webkit'];
+
+/** A tiny silent WAV file (8-bit, 8 kHz, 0.05 s), as base64: something a media element and decodeAudioData can both use. */
+const WAV = (() => {
+  const samples = 400, data = Buffer.alloc(samples, 128), h = Buffer.alloc(44);
+  h.write('RIFF', 0); h.writeUInt32LE(36 + samples, 4); h.write('WAVEfmt ', 8); h.writeUInt32LE(16, 16); h.writeUInt16LE(1, 20); h.writeUInt16LE(1, 22);
+  h.writeUInt32LE(8000, 24); h.writeUInt32LE(8000, 28); h.writeUInt16LE(1, 32); h.writeUInt16LE(8, 34); h.write('data', 36); h.writeUInt32LE(samples, 40);
+  return Buffer.concat([h, data]).toString('base64');
+})();
 const ALL = BROWSERS;
 
 const net = (name, code, extra = {}) => ({ name, kind: 'net', control: ALL, code, ...extra });
 // a WebRTC attack: the canary has a UDP port of its own for it. Chromium and Firefox send STUN packets on the control page; the WebKit
 // that Playwright runs has no WebRTC at all, so nothing can be observed there (real Safari has it)
 const rtc = (name, code, extra = {}) => net(name, code, { udp: true, control: ['chromium', 'firefox'], ...extra });
+// something an app is meant to be able to do. optional: an engine that cannot do it even on an open page (no GPU for WebGL, no audio decoder) is
+// skipped for that probe; whatever the open page can do, the sandbox must still allow
+const work = (name, code, extra = {}) => ({ name, kind: 'works', optional: true, code, ...extra });
 const cap = (name, code, extra = {}) => ({ name, kind: 'cap', code, ...extra });
 
 const guard = (expr) => `try { ${expr}; return 'allowed'; } catch (e) { return 'blocked'; }`;
@@ -182,6 +193,19 @@ export const PROBES = [
   // ---- what an app is meant to be able to do: the sandbox must not be "everything blocked" --------------------------------
   { name: 'works-data-image', kind: 'works', code: `return await new Promise((res) => { const i = new Image(); i.onload = () => res('allowed'); i.onerror = () => res('blocked'); i.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'; });` },
   { name: 'works-inline-style', kind: 'works', code: `html('<div id="ws" style="width:37px;height:1px"></div>'); return document.getElementById('ws').offsetWidth === 37 ? 'allowed' : 'blocked';` },
+  // what the "basic" and "creative" kinds of app need
+  work('works-canvas-2d', `const c = document.createElement('canvas'); c.width = 4; c.height = 4; const x = c.getContext('2d'); x.fillStyle = '#ff0000'; x.fillRect(0, 0, 4, 4); const d = x.getImageData(1, 1, 1, 1).data; return d[0] === 255 && d[1] === 0 && d[3] === 255 ? 'allowed' : 'blocked';`),
+  work('works-canvas-image', `return await new Promise((res) => { const i = new Image(); i.onload = () => { try { const c = document.createElement('canvas'); c.width = c.height = 2; const x = c.getContext('2d'); x.drawImage(i, 0, 0); x.getImageData(0, 0, 1, 1); res(c.toDataURL().startsWith('data:image/png') ? 'allowed' : 'blocked'); } catch (e) { res('blocked'); } }; i.onerror = () => res('blocked'); i.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'; });`),
+  work('works-canvas-text', `const c = document.createElement('canvas'); c.width = 60; c.height = 20; const x = c.getContext('2d'); x.font = '14px sans-serif'; x.fillText('hello', 2, 14); return x.measureText('hello').width > 0 ? 'allowed' : 'blocked';`),
+  work('works-webgl', `const gl = document.createElement('canvas').getContext('webgl'); if (!gl) return 'unsupported'; gl.clearColor(0, 1, 0, 1); gl.clear(gl.COLOR_BUFFER_BIT); const px = new Uint8Array(4); gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px); return px[1] === 255 ? 'allowed' : 'blocked';`),
+  work('works-webgl2', `const gl = document.createElement('canvas').getContext('webgl2'); if (!gl) return 'unsupported'; gl.clearColor(0, 0, 1, 1); gl.clear(gl.COLOR_BUFFER_BIT); const px = new Uint8Array(4); gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px); return px[2] === 255 ? 'allowed' : 'blocked';`),
+  work('works-audio-context', `const A = window.AudioContext || window.webkitAudioContext; if (!A) return 'unsupported'; const ctx = new A(); const o = ctx.createOscillator(); const g = ctx.createGain(); o.connect(g); g.connect(ctx.destination); o.start(); o.stop(ctx.currentTime + 0.05); await ctx.close(); return 'allowed';`),
+  work('works-audio-render', `if (typeof OfflineAudioContext === 'undefined') return 'unsupported'; const ctx = new OfflineAudioContext(1, 4410, 44100); const o = ctx.createOscillator(); o.connect(ctx.destination); o.start(); const d = (await ctx.startRendering()).getChannelData(0); let max = 0; for (let i = 0; i < d.length; i++) max = Math.max(max, Math.abs(d[i])); return max > 0.1 ? 'allowed' : 'blocked';`),
+  work('works-audio-decode', `if (typeof OfflineAudioContext === 'undefined') return 'unsupported'; const bytes = Uint8Array.from(atob(WAV), (c) => c.charCodeAt(0)); const buf = await new OfflineAudioContext(1, 1, 44100).decodeAudioData(bytes.buffer); return buf.length > 0 ? 'allowed' : 'blocked';`),
+  work('works-audio-element', `return await new Promise((res) => { const a = new Audio(); a.onloadedmetadata = () => res('allowed'); a.onerror = () => res('unsupported'); a.src = 'data:audio/wav;base64,' + WAV; setTimeout(() => res('unsupported'), 3000); });`),
+  work('works-animation-frame', `return await new Promise((res) => { requestAnimationFrame(() => res('allowed')); setTimeout(() => res('blocked'), 3000); });`),
+  work('works-offscreen-canvas', `if (typeof OffscreenCanvas === 'undefined') return 'unsupported'; return await new Promise((res) => { const w = new Worker(URL.createObjectURL(new Blob(['const c = new OffscreenCanvas(2, 2); const x = c.getContext("2d"); x.fillStyle = "#00ff00"; x.fillRect(0, 0, 2, 2); postMessage(x.getImageData(0, 0, 1, 1).data[1]);'], { type: 'text/javascript' }))); w.onmessage = (e) => res(e.data === 255 ? 'allowed' : 'blocked'); w.onerror = () => res('blocked'); setTimeout(() => res('blocked'), 3000); });`),
+  work('works-timers-and-promises', `let n = 0; await new Promise((r) => setTimeout(r, 20)); await Promise.all([1, 2, 3].map(async (i) => { n += i; })); return n === 6 && typeof performance.now() === 'number' ? 'allowed' : 'blocked';`),
   { name: 'works-blob-worker', kind: 'works', code: `return await new Promise((res) => { const w = new Worker(URL.createObjectURL(new Blob(['postMessage(1+1)'], { type: 'text/javascript' }))); w.onmessage = (e) => res(e.data === 2 ? 'allowed' : 'blocked'); w.onerror = () => res('blocked'); });` },
 
   // ---- attacks that wreck or navigate their own document: last, and one at a time on the control page ----------------------
@@ -234,6 +258,7 @@ const report = (name, result, detail) => parent.postMessage({ escape: 1, name, r
 const html = (markup) => document.body.insertAdjacentHTML('beforeend', markup);
 const css = (text) => { const s = document.createElement('style'); s.textContent = text; document.head.appendChild(s); };
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+const WAV = ${JSON.stringify(WAV)};
 const attr = (text) => text.replace(/"/g, '&quot;');
 // WebRTC helpers: a STUN server on the canary's UDP port for this probe, and the script a nested frame or worker would run
 const OPEN = '<scr' + 'ipt>', CLOSE = '</scr' + 'ipt>';

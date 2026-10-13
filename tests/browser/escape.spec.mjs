@@ -103,6 +103,7 @@ test.describe('the sandbox, as a hostile app with no permissions', () => {
   for (const p of byKind('works')) {
     test(`still works: ${p.name}`, ({}, info) => {
       const { sandbox } = results(info);
+      if (p.optional) test.skip(results(info).control.reports[p.name]?.result !== 'allowed', 'this engine cannot do it even with nothing in the way, so the sandbox cannot be blamed');
       expect(sandbox.reports[p.name]?.result, `${p.name}: ${sandbox.reports[p.name]?.detail ?? 'no report'}`).toBe('allowed');
     });
   }
@@ -149,7 +150,9 @@ test.describe('control: the same attacks on a page with no sandbox and no policy
 
   for (const p of byKind('works')) {
     test(`works: ${p.name}`, ({}, info) => {
-      expect(results(info).control.reports[p.name]?.result).toBe('allowed');
+      const r = results(info).control.reports[p.name];
+      if (p.optional) test.skip(r?.result === 'unsupported', 'this engine does not have it (no GPU, or no decoder)');
+      expect(r?.result, `${p.name}: ${r?.detail ?? 'no report'}`).toBe('allowed');
     });
   }
 });

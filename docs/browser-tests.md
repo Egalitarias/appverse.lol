@@ -33,6 +33,15 @@ CI runs them in `.github/workflows/browser.yml`, apart from the main tests.
 Attacks that wreck or navigate their own page (rewriting the document, `location = ...`, navigating the top page) run last, each on a fresh
 page, because a blocked navigation replaces the frame with an error page and ends the app's script.
 
+## What apps are meant to be able to do
+
+The sandbox must not be "everything blocked". The `works-*` probes check what the basic and creative kinds of app need: 2D canvas
+(drawing, text, an image drawn and read back), WebGL and WebGL2, Web Audio (a context, an offline render, decoding a file), an audio
+element, `requestAnimationFrame`, an `OffscreenCanvas` in a worker, a blob worker, timers and promises, and data: images and inline styles.
+Each is judged against the control page: where an engine cannot do it even with nothing in the way (the WebKit that Playwright runs on
+Windows has no Web Audio and no `OffscreenCanvas`; a machine without a GPU may have no WebGL) the probe is skipped for that engine, and
+wherever the open page can, the sandbox must too. Tighten the policy so that one of them breaks and the matching probe fails.
+
 ## Known gaps
 
 A gap is listed in `KNOWN_GAPS` in `escape.spec.mjs`: the test passes while the gap is open
