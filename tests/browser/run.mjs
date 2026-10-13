@@ -2,7 +2,10 @@
 // global setup calls this once per engine and writes the result to .results/<engine>.json; the spec only reads that, so a failing
 // check never makes Playwright restart a worker and repeat the minute-long run.
 import { startSite, startCanary } from './servers.mjs';
-import { PROBES, UDP_PROBES, probePage } from './probes.mjs';
+import { PROBES, UDP_PROBES, TCP_PROBES, probePage } from './probes.mjs';
+import { mkdtempSync, readdirSync, readFileSync as readText } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { buildZip } from '../../js/zipwrite.js';
 
 const enc = new TextEncoder();
@@ -12,7 +15,7 @@ async function appletWithProbes(canary, opts) {
   const manifest = { applet: 1, id: 'test.escape', title: 'Escape attempts', entry: 'index.html', width: 480, height: 360, permissions: [] };
   const zip = buildZip([
     ['manifest.json', enc.encode(JSON.stringify(manifest))],
-    ['index.html', enc.encode(probePage({ canary: canary.url, udpPorts: canary.udpPorts, udpHost: canary.udpHost, site: opts.siteUrl, ...opts }))],
+    ['index.html', enc.encode(probePage({ canary: canary.url, udpPorts: canary.udpPorts, tcpPorts: canary.tcpPorts, udpHost: canary.udpHost, phase: 's', site: opts.siteUrl, ...opts }))],
   ]);
   return Buffer.from(await zip.arrayBuffer());
 }
@@ -21,9 +24,9 @@ async function appletWithProbes(canary, opts) {
 async function watch(browser, siteUrl) {
   const context = await browser.newContext({ acceptDownloads: true });
   await context.addCookies([{ ...COOKIE, url: siteUrl }]); // a cookie of the host page's own: an app must not see or add to the cookies
-  const seen = { reports: {}, started: [], popups: [], downloads: [], dialogs: [], navigations: [] };
+  const seen = { reports: {}, started: [], startedAt: {}, popups: [], downloads: [], dialogs: [], navigations: [] };
   await context.exposeBinding('__escapeReport', (_, r) => {
-    if (r.result === 'started') seen.started.push(r.name);
+    if (r.result === 'started') { seen.started.push(r.name); seen.startedAt[r.name] = Date.now(); }
     else seen.reports[r.name] = { result: r.result, detail: r.detail };
   });
   // only the top document listens: the app's own frame is not handed anything by the test
@@ -39,7 +42,7 @@ async function watch(browser, siteUrl) {
   track(page);
   context.on('page', (p) => { track(p); seen.popups.push(p.url()); });
   page.on('framenavigated', (f) => { if (f === page.mainFrame()) seen.navigations.push(f.url()); });
-  return { context, page, seen };
+  return { context, page, seen, track };
 }
 
 async function waitFor(fn, ms = 40_000) {
@@ -51,7 +54,7 @@ async function waitFor(fn, ms = 40_000) {
 const cookieNames = async (context, url) => (await context.cookies(url)).map((c) => c.name).sort();
 
 async function sandboxed(browser) {
-  const canary = await startCanary({ udp: UDP_PROBES });
+  const canary = await startCanary({ udp: UDP_PROBES, tcp: TCP_PROBES });
   const site = await startSite();
   const w = await watch(browser, site.url);
   const hostUrl = `${site.url}/index.html`;
@@ -75,7 +78,7 @@ async function sandboxed(browser) {
     return finished;
   };
 
-  const finished = await runApp({ group: 'main' }, () => waitFor(() => w.seen.reports.__done));
+  const finished = await runApp({ group: 'main' }, () => waitFor(() => w.seen.reports.__done, 150_000));
   // an attack that navigates or rewrites its own document can end the app's script, so each one gets a fresh app
   for (const p of PROBES.filter((x) => x.last)) await runApp({ only: p.name }, () => waitFor(() => w.seen.started.includes(p.name), 10_000));
 
@@ -88,27 +91,53 @@ async function sandboxed(browser) {
 }
 
 async function control(browser) {
-  const canary = await startCanary({ udp: UDP_PROBES });
-  const site = await startSite({ '/__control/probe.html': probePage({ canary: canary.url, udpPorts: canary.udpPorts, udpHost: canary.udpHost, site: null }) });
+  const canary = await startCanary({ udp: UDP_PROBES, tcp: TCP_PROBES });
+  const site = await startSite({ '/__control/probe.html': probePage({ canary: canary.url, udpPorts: canary.udpPorts, tcpPorts: canary.tcpPorts, udpHost: canary.udpHost, phase: 'c', site: null }) });
   const w = await watch(browser, site.url);
   // a page that never finishes loading (streams, workers, frames) must not hold us up: wait for the probes, not for "load"
   await w.page.goto(`${site.url}/__control/probe.html?group=main`, { waitUntil: 'commit' });
-  const finished = await waitFor(() => w.seen.reports.__done);
+  const finished = await waitFor(() => w.seen.reports.__done, 150_000);
   await w.page.waitForTimeout(2000);
+  const lastLoads = {};
   for (const p of PROBES.filter((x) => x.last)) {
-    await w.page.goto(`${site.url}/__control/probe.html?only=${p.name}`, { waitUntil: 'commit' }).catch(() => {});
-    await w.page.waitForTimeout(2500); // fixed: the page may be gone before it can say it is done
+    const page = await w.context.newPage(); // a page of its own: the main page may still be busy with the attacks before it
+    w.track(page);
+    const loaded = await page.goto(`${site.url}/__control/probe.html?only=${p.name}`, { waitUntil: 'commit' }).then(() => true, (e) => String(e.message).slice(0, 120));
+    const started = await waitFor(() => w.seen.started.includes(p.name), 10_000);
+    await page.waitForTimeout(2500); // fixed: the page may be gone before it can say it is done
+    lastLoads[p.name] = { loaded, started };
+    await page.close().catch(() => {});
   }
-  const out = { ...w.seen, finished, hits: [...canary.hits], siteHits: [...site.hits], cookies: await cookieNames(w.context, site.url) };
+  const out = { ...w.seen, lastLoads, finished, hits: [...canary.hits], siteHits: [...site.hits], cookies: await cookieNames(w.context, site.url) };
   await w.context.close(); await canary.close(); await site.close();
   return out;
 }
 
+/** The engines that can write down every DNS lookup they make: Chromium (its network log) and Firefox (the host resolver's log). */
+function dnsLogging(name) {
+  const dir = mkdtempSync(join(tmpdir(), `dnslog-${name}-`));
+  if (name === 'chromium') return { dir, options: { args: [`--log-net-log=${join(dir, 'net.json')}`, '--net-log-capture-mode=Everything'] } };
+  if (name === 'firefox') return { dir, options: { env: { ...process.env, MOZ_LOG: 'nsHostResolver:5', MOZ_LOG_FILE: join(dir, 'ff.log') } } };
+  return null;
+}
+
+/** Every hostname under canary.test that appears in what the browser logged (the names say which attack, and which run). */
+function dnsNames(dir) {
+  const found = new Set();
+  for (const f of readdirSync(dir)) {
+    for (const m of readText(join(dir, f), 'latin1').matchAll(/[a-z0-9-]+.[sc].canary.test/g)) found.add(m[0]);
+  }
+  return [...found].sort();
+}
+
 export async function collect(browserType) {
-  const browser = await browserType.launch();
+  const logging = dnsLogging(browserType.name());
+  const browser = await browserType.launch(logging?.options ?? {});
+  let sandbox, ctl;
   try {
-    const sandbox = await sandboxed(browser);
-    const ctl = await control(browser);
-    return { browser: browserType.name(), version: browser.version(), sandbox, control: ctl };
+    sandbox = await sandboxed(browser);
+    ctl = await control(browser);
   } finally { await browser.close(); }
+  // the browser writes its log as it exits
+  return { browser: browserType.name(), version: browser.version(), dnsObserved: Boolean(logging), dnsNames: logging ? dnsNames(logging.dir) : [], sandbox, control: ctl };
 }

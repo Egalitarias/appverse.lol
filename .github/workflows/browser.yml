@@ -4,6 +4,7 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -26,3 +27,12 @@ jobs:
       - run: npm ci
       - run: npx playwright install --with-deps chromium firefox webkit
       - run: npx playwright test
+      # what each engine did (the canary's hits, every report), so a failure can be read without running it again
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: browser-results
+          path: |
+            tests/browser/.results
+            tests/browser/test-results
+          retention-days: 7

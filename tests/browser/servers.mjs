@@ -6,6 +6,7 @@
 //    connection, a UDP packet). An app in the sandbox must never reach it, so any entry in `hits` is an escape.
 import { createServer } from 'node:http';
 import { createSocket } from 'node:dgram';
+import { createServer as createTcpServer } from 'node:net';
 import { readFileSync, existsSync, statSync } from 'node:fs';
 import { networkInterfaces } from 'node:os';
 import { dirname, extname, join, resolve, sep } from 'node:path';
@@ -64,33 +65,40 @@ export async function startSite(pages = {}) {
 /** What `/probe/<name>.ext?query` is called in the hit list: "name". */
 const nameOf = (url) => /^\/probe\/([^/?#.]+)/.exec(new URL(url, 'http://x').pathname)?.[1] ?? '(other)';
 
-/** `udp` names the UDP ports to open, one per WebRTC attack, so a packet says which route it came through. */
-export async function startCanary({ udp = [] } = {}) {
+/** `udp` and `tcp` name the ports to open, one per attack that sends no HTTP (WebRTC; a preconnect hint), so a packet or connection says which. */
+export async function startCanary({ udp = [], tcp = [] } = {}) {
   const hits = [];
   const server = createServer((req, res) => {
     const name = nameOf(req.url);
-    hits.push({ kind: 'http', name, method: req.method, url: req.url, origin: req.headers.origin ?? '' });
+    hits.push({ kind: 'http', name, method: req.method, url: req.url, origin: req.headers.origin ?? '', t: Date.now() });
     const path = new URL(req.url, 'http://x').pathname;
     const type = path.endsWith('.js') ? TYPES['.js'] : path.endsWith('.css') || /^\/probe\/(css-import|link-stylesheet)/.test(path) ? TYPES['.css'] : 'image/gif';
     res.writeHead(200, { 'Content-Type': type, 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'no-store', Connection: 'close' });
     res.end(type === 'image/gif' ? GIF : type === TYPES['.css'] ? 'body{}' : 'void 0;');
   });
-  server.on('connection', () => hits.push({ kind: 'tcp', name: '(connection)' }));
-  server.on('upgrade', (req, socket) => { hits.push({ kind: 'ws', name: nameOf(req.url), url: req.url }); socket.destroy(); });
+  server.on('connection', () => hits.push({ kind: 'tcp', name: '(connection)', t: Date.now() }));
+  server.on('upgrade', (req, socket) => { hits.push({ kind: 'ws', name: nameOf(req.url), url: req.url, t: Date.now() }); socket.destroy(); });
   const port = await listen(server);
 
   // UDP listeners for WebRTC: STUN requests to them are traffic that a content-security-policy cannot stop
   const sockets = {};
   for (const name of udp) {
     const socket = createSocket('udp4');
-    socket.on('message', (msg, from) => hits.push({ kind: 'udp', name, bytes: msg.length, from: from.port }));
+    socket.on('message', (msg, from) => hits.push({ kind: 'udp', name, bytes: msg.length, from: from.port, t: Date.now() }));
     sockets[name] = { socket, port: await listen(socket, 'udp', '0.0.0.0') };
   }
   const udpPorts = Object.fromEntries(Object.entries(sockets).map(([name, s]) => [name, s.port]));
+  const tcpServers = {};
+  for (const name of tcp) {
+    const s = createTcpServer((socket) => { hits.push({ kind: 'tcp', name, t: Date.now() }); socket.on('error', () => {}); socket.destroy(); });
+    tcpServers[name] = { server: s, port: await listen(s, 'tcp') };
+  }
+  const tcpPorts = Object.fromEntries(Object.entries(tcpServers).map(([name, s]) => [name, s.port]));
 
   return {
     url: `http://127.0.0.1:${port}`,
     udpPorts,
+    tcpPorts,
     udpHost: lanAddress(),
     hits,
     reset: () => { hits.length = 0; },
@@ -98,6 +106,6 @@ export async function startCanary({ udp = [] } = {}) {
     named: (name) => hits.filter((h) => (h.kind === 'http' || h.kind === 'ws') && h.name === name),
     /** Contacts that have no path: a bare connection or a UDP packet. */
     bare: () => hits.filter((h) => h.kind === 'tcp' || h.kind === 'udp'),
-    close: () => new Promise((ok) => { for (const { socket } of Object.values(sockets)) socket.close(); server.closeAllConnections(); server.close(ok); }),
+    close: () => new Promise((ok) => { for (const { socket } of Object.values(sockets)) socket.close(); for (const { server: s } of Object.values(tcpServers)) s.close(); server.closeAllConnections(); server.close(ok); }),
   };
 }

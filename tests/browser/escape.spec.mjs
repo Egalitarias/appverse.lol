@@ -20,10 +20,17 @@ const results = (info) => {
   return cache.get(name);
 };
 const gapFor = (probe, engine) => KNOWN_GAPS[probe]?.[engine];
+/** A hit written as text, with the probes that had just started when it came in (a bare connection says nothing about which attack opened it). */
+const describeHit = (h, startedAt = {}) => {
+  const near = Object.entries(startedAt).filter(([, t]) => h.t && t <= h.t && h.t - t < 4000).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([n]) => n);
+  return `${h.kind} ${h.name}${near.length ? ` (just after the start of: ${near.join(', ')})` : ''}`;
+};
 const named = (hits, name) => hits.filter((h) => (h.kind === 'http' || h.kind === 'ws') && h.name === name);
+/** The lookups of a probe's hostname that the browser logged, in the run with this phase letter ('s' the sandbox, 'c' the control page). */
+const lookups = (p, all, phase) => (all.dnsNames ?? []).filter((n) => n === `${p.name}.${phase}.canary.test`);
 const byKind = (kind) => PROBES.filter((p) => p.kind === kind);
 /** What a probe got through to: the canary's hits for it, the UDP packets sent to its own port, or the requests that reached the site's own server. */
-const reached = (p, data) => (p.origin === 'site' ? named(data.siteHits, p.name) : p.udp ? data.hits.filter((h) => h.kind === 'udp' && h.name === p.name) : named(data.hits, p.name));
+const reached = (p, data) => (p.origin === 'site' ? named(data.siteHits, p.name) : p.udp ? data.hits.filter((h) => h.kind === 'udp' && h.name === p.name) : p.tcp ? data.hits.filter((h) => h.kind === 'tcp' && h.name === p.name) : named(data.hits, p.name));
 
 // ================================================================================================================================
 test.describe('the sandbox, as a hostile app with no permissions', () => {
@@ -49,13 +56,19 @@ test.describe('the sandbox, as a hostile app with no permissions', () => {
       const gap = gapFor(p.name, info.project.name);
       test.fail(Boolean(gap), gap);
       expect(sandbox.started, `${p.name} was never tried`).toContain(p.name);
+      if (p.dns) {
+        const all = results(info);
+        test.skip(!all.dnsObserved, 'this browser does not write down its DNS lookups, so a lookup cannot be seen');
+        expect(lookups(p, all, 's'), `${p.name}: the browser looked up a hostname the app chose`).toEqual([]);
+        return;
+      }
       expect(reached(p, sandbox), `${p.name} got out`).toEqual([]);
     });
   }
 
   test('nothing else reached the canary: no HTTP, WebSocket, bare TCP connection or UDP packet', ({}, info) => {
     const { sandbox } = results(info);
-    expect(sandbox.hits.filter((h) => !gapFor(h.name, info.project.name)), 'the canary was reached').toEqual([]);
+    expect(sandbox.hits.filter((h) => !gapFor(h.name, info.project.name)).map((h) => describeHit(h, sandbox.startedAt)), 'the canary was reached').toEqual([]);
     expect(sandbox.siteHits, "the site's own server was reached by the app").toEqual([]);
   });
 
@@ -95,9 +108,17 @@ test.describe('control: the same attacks on a page with no sandbox and no policy
 
   for (const p of byKind('net').filter((x) => !x.harness)) {
     test(`reaches the canary: ${p.name}`, ({}, info) => {
+      if (p.dns) {
+        const all = results(info);
+        test.skip(!all.dnsObserved || !(p.dnsControl ?? []).includes(info.project.name), 'this browser does not look the name up with nothing in the way, or does not log lookups, so the attack cannot be observed');
+        expect(lookups(p, all, 'c'), `${p.name}: no lookup, so the sandbox result for it means nothing`).not.toEqual([]);
+        return;
+      }
       test.skip(!p.control.includes(info.project.name), 'this browser ignores the attack even with nothing in the way, so it cannot be observed');
       const { control } = results(info);
-      expect(reached(p, control), `${p.name} never got out, so the sandbox result for it means nothing`).not.toEqual([]);
+      const load = control.lastLoads?.[p.name];
+      const why = load && (load.loaded !== true || !load.started) ? ` (its page ${load.loaded !== true ? `did not load: ${load.loaded}` : 'loaded but the probe never started'})` : '';
+      expect(reached(p, control), `${p.name} never got out, so the sandbox result for it means nothing${why}`).not.toEqual([]);
     });
   }
 

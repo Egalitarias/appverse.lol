@@ -52,14 +52,25 @@ const GUARD = `(() => {
     try { delete window[name]; } catch (e) { /* not configurable: the next line covers it */ }
     try { Object.defineProperty(window, name, { value: undefined, writable: false, configurable: false }); } catch (e) { /* already locked */ }
   }
-  if (!window.trustedTypes || !trustedTypes.createPolicy) return;
   const no = (what) => { throw new TypeError('Appverse apps cannot ' + what + '.'); };
+  // A link element with rel="preconnect" makes the browser look a host name up, or connect to it, before any policy is asked (Firefox applies
+  // none to it), and a host name is data an app can send. An app has no use for a link element: its stylesheets are put inline when it is
+  // packed. So none can be made: not by createElement, createElementNS, a custom element that extends link, nor HTML text.
+  const isLink = (name) => String(name).toLowerCase().replace(/^.*:/, '') === 'link';
+  const createElement = Document.prototype.createElement;
+  const createElementNS = Document.prototype.createElementNS;
+  const define = CustomElementRegistry.prototype.define;
+  Document.prototype.createElement = function (name, options) { if (isLink(name)) no('make link elements'); return createElement.call(this, name, options); };
+  Document.prototype.createElementNS = function (ns, name, options) { if (isLink(name)) no('make link elements'); return createElementNS.call(this, ns, name, options); };
+  CustomElementRegistry.prototype.define = function (name, ctor, options) { if (options && options.extends && isLink(options.extends)) no('make link elements'); return define.call(this, name, ctor, options); };
+  if (!window.trustedTypes || !trustedTypes.createPolicy) return;
   const FRAMES = /iframe|srcdoc|<\\s*\\/?\\s*(?:frame|frameset|fencedframe|portal)\\b/i;
   trustedTypes.createPolicy('default', {
     createHTML: (html, type, sink) => {
       if (/^HTMLIFrameElement /.test(sink)) no('make frames');
       if (/^Document write/.test(sink)) no('use document.write: build the page with the DOM instead');
       if (FRAMES.test(html)) no('make frames');
+      if (/<\\s*link\\b/i.test(html)) no('make link elements');
       return html;
     },
     createScript: (script, type, sink) => (/^HTMLScriptElement /.test(sink) ? script : no('run script from a string')),
@@ -234,6 +245,7 @@ export function buildDocument(manifest, files) {
   // content lands in the head and body as usual.
   return `<!doctype html><html><head><meta charset="utf-8">
 <meta http-equiv="Content-Security-Policy" content="${CSP}">
+<meta http-equiv="x-dns-prefetch-control" content="off">
 <script>${GUARD}</script>
 <script>${shim}</script>
 ${page}`;

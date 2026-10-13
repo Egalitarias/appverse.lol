@@ -168,6 +168,9 @@ test('WebRTC: the sandbox page loses the API and cannot make a frame that would 
   const guard = doc.indexOf('RTCPeerConnection');
   assert.ok(guard > doc.indexOf('Content-Security-Policy') && guard < doc.indexOf('window.appverse') && guard < doc.indexOf('app-start'), 'the guard comes after the policy and before the bridge and the app');
   for (const name of ['RTCPeerConnection', 'webkitRTCPeerConnection', 'mozRTCPeerConnection', 'createPolicy', 'HTMLIFrameElement', 'Document write']) assert.ok(doc.includes(name), name);
+  // host names are data too: no DNS prefetching, and no link element (a preconnect hint makes the browser look a name up)
+  assert.ok(doc.includes('http-equiv="x-dns-prefetch-control" content="off"'), 'DNS prefetching is off');
+  for (const name of ['Document.prototype.createElement', 'Document.prototype.createElementNS', 'CustomElementRegistry.prototype.define']) assert.ok(doc.includes(name), name);
 
   // a frame written into the page is made by the HTML parser, which no policy sees: the build refuses it, however it is spelled
   for (const tag of ['<iframe srcdoc="x"></iframe>', '<IFRAME src=x>', '< iframe>', '<frameset></frameset>', '<script>var s = "<iframe>"</script>']) {

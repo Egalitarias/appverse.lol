@@ -60,6 +60,22 @@ address). Chromium and Firefox send packets on the control page, so there a "not
 **The WebKit that Playwright runs has no WebRTC at all** (`RTCPeerConnection` is undefined), so nothing can be observed there; real
 Safari has it, and the same guard applies to it.
 
+### Host names are data too
+
+Even with every request blocked, an app can make the browser look a name up. `<a href>`, `<link rel=dns-prefetch>` and
+`<link rel=preconnect>` ask DNS about a host before any content-security-policy is consulted, and in Firefox `connect-src` does not apply
+to preconnect at all. A name like `<data>.example.com` is a way to send data to whoever runs that domain's DNS. The hostname probes
+(`dns-*`) put the probe's name and the run (`s` the sandbox, `c` the control page) in each hostname, and read the lookups from the
+browser's own log: Chromium's network log, and Firefox's host resolver log. In Firefox the sandbox leaked all of them. The fixes:
+
+1. `<meta http-equiv="x-dns-prefetch-control" content="off">` in the app's page (stops the anchor and `dns-prefetch` lookups).
+2. No link element can be made: `createElement`, `createElementNS` and custom elements that extend `link` refuse it, and the HTML policy
+   refuses text that contains one. An app has no use for one (its stylesheets are put inline when it is packed).
+
+What can and cannot be seen: Chromium's log shows no lookup for these hints even with nothing in the way (only for an image request), so
+the sandbox result there is a weak "nothing seen"; WebKit has no log to read, so it is not observed at all. Only Firefox shows every
+lookup on the control page.
+
 ## Are the tests any good?
 
 They were checked by breaking the sandbox on purpose. With the network allowed in both the app's policy and the page's policy, the
