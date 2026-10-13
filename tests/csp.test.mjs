@@ -10,9 +10,9 @@ const isRunner = (name) => runnerRe.test('/' + name);
 
 test('the pages that run apps are exactly the ones allowed inline script in the Caddyfile', () => {
   const pages = readdirSync(root).filter((f) => f.endsWith('.html'));
-  const runners = pages.filter((f) => /<script[^>]*src="js\/(main|library)\.js"/.test(readFileSync(new URL(f, root), 'utf8')));
+  const runners = pages.filter((f) => /<script[^>]*src="js\/(main|library|pack)\.js"/.test(readFileSync(new URL(f, root), 'utf8')));
   assert.deepEqual(pages.filter(isRunner).sort(), runners.sort());
-  for (const ok of ['/', '/index.html', '/library.html']) assert.ok(runnerRe.test(ok), ok);
+  for (const ok of ['/', '/index.html', '/library.html', '/pack.html']) assert.ok(runnerRe.test(ok), ok);
   for (const no of ['/make.html', '/spec.html', '/js/main.js', '/library.html.js', '/x/index.html', '/examples/notes.applet']) assert.ok(!runnerRe.test(no), no);
   assert.equal(otherRe, caddy.match(/@runner path_regexp runner (\S+)/)[1], 'the strict policy must be the exact opposite of the runner-page one');
 });

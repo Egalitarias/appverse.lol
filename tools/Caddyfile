@@ -13,10 +13,10 @@ appverse.lol {
 	# app's scripts and styles are inlined into it (js/sandbox.js), so this page must allow 'unsafe-inline' and data: media.
 	# The app is still locked down by the sandbox attribute and by the stricter policy injected first into its own document:
 	# no network, no frames, an opaque origin.
-	@runner path_regexp runner ^/((index|library)\.html)?$
+	@runner path_regexp runner ^/((index|library|pack)\.html)?$
 	# Every other page and file: no inline script or style at all.
 	@other {
-		not path_regexp runner2 ^/((index|library)\.html)?$
+		not path_regexp runner2 ^/((index|library|pack)\.html)?$
 	}
 
 	header {

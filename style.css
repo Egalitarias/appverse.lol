@@ -49,3 +49,29 @@ input[type=search] { background: #0d0d14; color: var(--fg); border: 1px solid #f
 .apps h3 { margin: 0 0 2px; }
 .apps p { margin: 6px 0; }
 .apps button:disabled { opacity: .6; cursor: not-allowed; }
+#load-error { background: #ff6b6b22; border: 1px solid var(--bad); color: var(--bad); padding: 10px 14px; border-radius: 8px; white-space: pre-wrap; }
+.pack h2 { margin-top: 28px; }
+.form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px 16px; }
+.form-grid label { display: block; color: var(--dim); font-size: 14px; }
+.form-grid label.wide, .form-grid fieldset.wide { grid-column: 1 / -1; }
+.form-grid small { display: block; margin-top: 4px; font-size: 12px; }
+.form-grid input[type=text], .form-grid input[type=number], .form-grid select { display: block; width: 100%; margin-top: 4px; background: #0d0d14; color: var(--fg); border: 1px solid #ffffff2a; border-radius: 8px; padding: 8px 10px; font: 15px/1.4 system-ui, sans-serif; }
+.form-grid fieldset { border: 1px solid #ffffff22; border-radius: 8px; padding: 8px 12px; }
+.form-grid legend { color: var(--dim); font-size: 14px; padding: 0 6px; }
+.form-grid label.inline { display: inline-block; margin: 4px 18px 4px 0; color: var(--fg); }
+.files { list-style: none; padding: 0; margin: 8px 0; font: 13px/1.6 ui-monospace, Consolas, monospace; max-height: 260px; overflow: auto; }
+.files li { display: flex; justify-content: space-between; gap: 16px; border-bottom: 1px solid #ffffff10; }
+.files .size { color: var(--dim); white-space: nowrap; }
+.checks { list-style: none; padding: 0; margin: 8px 0; }
+.checks li { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; padding: 8px 12px; margin: 6px 0; border-radius: 8px; background: var(--panel); white-space: pre-wrap; }
+.checks li b { text-transform: uppercase; font-size: 11px; letter-spacing: .08em; padding: 2px 8px; border-radius: 99px; }
+.checks .lvl-error b { background: #ff6b6b33; color: var(--bad); }
+.checks .lvl-warn b { background: #ffa30033; color: #ffb84d; }
+.checks .lvl-info b { background: #29adff2a; color: #7cc7ff; }
+.checks span { flex: 1 1 300px; }
+#check-summary.bad { color: var(--bad); }
+#check-summary.warn { color: #ffb84d; }
+#check-summary.good { color: #5ee08a; }
+.actions button { margin-right: 8px; }
+#action-note { color: var(--dim); }
+button:disabled { opacity: .6; cursor: not-allowed; }

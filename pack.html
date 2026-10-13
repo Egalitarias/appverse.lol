@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pack an Appverse app</title>
+  <meta name="description" content="Turn a folder of HTML, CSS and JavaScript into an .applet file, check it and test it in the sandbox. Everything happens in your browser.">
+  <link rel="canonical" href="https://appverse.lol/pack.html">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Appverse">
+  <meta property="og:title" content="Pack an Appverse app">
+  <meta property="og:description" content="Turn a folder of HTML, CSS and JavaScript into an .applet file, check it and test it in the sandbox. Everything happens in your browser.">
+  <meta property="og:url" content="https://appverse.lol/pack.html">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <nav class="nav">
+    <a class="brand" href="./">Appverse</a>
+    <a href="index.html">Home</a>
+    <a href="library.html">Library</a>
+    <a href="make.html">Make an app</a>
+    <a href="pack.html" aria-current="page">Pack an app</a>
+    <a href="spec.html">Spec</a>
+    <a href="privacy.html">Privacy</a>
+  </nav>
+  <main class="doc pack">
+    <h1>Pack an app</h1>
+    <p>Turn an app folder into an <code>.applet</code> file. Everything happens in your browser: nothing is uploaded.</p>
+
+    <section id="step-load">
+      <div id="dropzone" tabindex="0" role="button" aria-label="Drop an app folder, a .zip or an .applet file here, or press Enter to choose a folder">
+        <strong>Drop your app folder here</strong>
+        <span>or a <code>.zip</code> / <code>.applet</code> file</span>
+        <p>
+          <button type="button" id="btn-folder" class="secondary">Choose folder</button>
+          <button type="button" id="btn-zip" class="secondary">Choose .zip or .applet</button>
+        </p>
+      </div>
+      <input id="in-folder" type="file" webkitdirectory multiple hidden>
+      <input id="in-zip" type="file" accept=".zip,.applet" hidden>
+      <p id="load-error" role="alert" hidden></p>
+      <p class="small">An app is a folder with an <code>index.html</code>, plus the scripts, styles and images it uses. A <code>manifest.json</code> is optional: this page writes one for you. See <a href="make.html">Make an app</a> for the rules.</p>
+    </section>
+
+    <section id="step-edit" hidden>
+      <h2>Your app</h2>
+      <p id="summary"></p>
+      <p id="load-note" class="small"></p>
+      <details>
+        <summary>Show the files</summary>
+        <ul id="files" class="files"></ul>
+      </details>
+      <p><button type="button" id="btn-reset" class="secondary">Start over</button></p>
+
+      <h2>Details</h2>
+      <div class="form-grid">
+        <label>Title <input id="f-title" type="text" maxlength="80"></label>
+        <label>ID <input id="f-id" type="text" maxlength="64" spellcheck="false"><small>Names the storage slot, so make it unique: the reverse of a domain you own plus the app name, such as <code>com.mystudio.notes</code>.</small></label>
+        <label>Author <input id="f-author" type="text" maxlength="80"></label>
+        <label>Version <input id="f-version" type="text" maxlength="20"></label>
+        <label>License <input id="f-license" type="text" maxlength="120" placeholder="MIT, CC BY 4.0, All rights reserved"></label>
+        <label>Entry file <select id="f-entry"></select></label>
+        <label>Window width <input id="f-width" type="number" min="64" max="4096"></label>
+        <label>Window height <input id="f-height" type="number" min="64" max="4096"></label>
+        <label class="wide">Description <input id="f-desc" type="text" maxlength="500"></label>
+        <fieldset class="wide">
+          <legend>Permissions (people see this list before pressing Run)</legend>
+          <label class="inline"><input type="checkbox" id="f-storage"> Save data on the person's device</label>
+          <label class="inline"><input type="checkbox" id="f-clipboard"> Copy text to the clipboard</label>
+          <label class="inline"><input type="checkbox" id="f-fullscreen"> Go fullscreen</label>
+        </fieldset>
+      </div>
+
+      <h2>Checks</h2>
+      <p id="check-summary"></p>
+      <ul id="checks" class="checks"></ul>
+
+      <p class="actions">
+        <button type="button" id="btn-test">Test it</button>
+        <button type="button" id="btn-download">Download .applet</button>
+      </p>
+      <p id="action-note" role="status" hidden></p>
+
+      <section id="stage" hidden>
+        <div class="bar">
+          <strong>Test run</strong>
+          <button type="button" id="btn-stop" class="secondary">Stop</button>
+        </div>
+        <div id="screen"></div>
+      </section>
+    </section>
+  </main>
+  <script type="module" src="js/pack.js"></script>
+  <footer><p class="small">Appverse is a sibling of <a href="https://gameverse.lol">Gameverse</a>. <a href="privacy.html">Privacy</a></p></footer>
+</body>
+</html>
