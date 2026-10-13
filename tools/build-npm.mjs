@@ -6,14 +6,14 @@
 //
 // The package holds exactly the files in the website's "Download tools" bundle (js/downloads.js is the one list), so
 // the download, the tests and the npm package cannot drift apart. The repository's own package.json stays private.
-import { mkdirSync, writeFileSync, readFileSync, rmSync, existsSync } from 'node:fs';
+import { mkdirSync, writeFileSync, readFileSync, readdirSync, rmSync, existsSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { BUNDLES } from '../js/downloads.js';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const PREFIX = 'appverse-tools/';
-export const PACKAGE_VERSION = '0.1.0';
+export const PACKAGE_VERSION = '0.1.1';
 
 const README = `# appverse
 
@@ -46,7 +46,9 @@ MIT licensed.
 
 export function buildNpmPackage(out = join(root, 'dist', 'npm')) {
   out = resolve(out);
-  if (existsSync(out)) rmSync(out, { recursive: true, force: true });
+  // empty the folder rather than delete it: on Windows a folder that is some shell's current directory cannot be removed
+  if (existsSync(out)) for (const name of readdirSync(out)) rmSync(join(out, name), { recursive: true, force: true });
+  mkdirSync(out, { recursive: true });
   const files = [];
   for (const f of BUNDLES.tools.files) {
     if (!f.as.startsWith(PREFIX)) throw new Error(`unexpected path in the tools bundle: ${f.as}`);

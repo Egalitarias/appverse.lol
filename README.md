@@ -25,6 +25,17 @@ is the product:
 
 See `spec.html` and `make.html` for the manifest, permissions and limits.
 
+## The tools
+
+    npx appverse new my-app      # or: npm install -g appverse, then `applet new my-app`
+    cd my-app
+    npx appverse dev             # run it in the sandbox, reloading when you save
+    npx appverse check           # look for mistakes
+    npx appverse pack            # build my-app.applet
+
+The same tools are a zip on `make.html` (no npm needed). To publish a new version of the npm package: raise `PACKAGE_VERSION` in
+`tools/build-npm.mjs`, run `node tools/build-npm.mjs`, then `cd dist/npm && npm publish --access public --otp=<code>`.
+
 ## Known risks
 
 CPU and memory hogging (Stop destroys the frame), phishing-style UI inside a trusted domain (the frame is labelled untrusted), and
@@ -53,5 +64,5 @@ Skeleton: pages, styles, branding, docs for the model, `llms.txt`, `robots.txt`,
 ## Next steps
 
 1. An escape-route test page and Playwright tests across Chromium, Firefox and WebKit (the unit tests do not run a browser).
-2. Publish the tools to npm (`npx appverse`), and add more example apps.
+2. More example apps.
 3. Serve apps from a separate origin.

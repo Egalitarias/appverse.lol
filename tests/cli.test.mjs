@@ -167,3 +167,13 @@ test('dev: serves the page, the app and the runtime files, only to this computer
     await dev.close();
   }
 });
+
+test('new shows the command that works: `applet` when installed, `npx appverse` when run through npx', () => {
+  const run = (env) => spawnSync(process.execPath, [APPLET, 'new', 'demo'], { cwd: work(), encoding: 'utf8', env: { ...process.env, ...env } });
+  const plain = run({ npm_command: '' });
+  assert.match(plain.stdout, /\n {4}applet dev /);
+  assert.ok(!plain.stdout.includes('npx appverse'));
+  const viaNpx = run({ npm_command: 'exec' });
+  assert.match(viaNpx.stdout, /\n {4}npx appverse dev /);
+  assert.match(viaNpx.stdout, /npx appverse pack +build demo\.applet/);
+});

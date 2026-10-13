@@ -146,11 +146,13 @@ function cmdNew(args) {
     else writeFileSync(to, data);
   }
   const id = slug(basename(dest)) || 'app';
+  // via npx there is no `applet` on the PATH, so show the command that works
+  const cmd = process.env.npm_command === 'exec' ? 'npx appverse' : 'applet';
   console.log(`Created ${dest} (starter).
   Edit index.html and app.js, then from inside the folder:
-    applet dev      run it in the browser sandbox, reloading when you save
-    applet check    look for mistakes
-    applet pack     build ${id}.applet
+    ${cmd} dev      run it in the browser sandbox, reloading when you save
+    ${cmd} check    look for mistakes
+    ${cmd} pack     build ${id}.applet
   Before you share it, change "id" in manifest.json to your own (the reverse of a domain you own, e.g. com.mystudio.${id}).`);
   return 0;
 }
