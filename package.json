@@ -3,7 +3,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node --test"
+    "test": "node --test",
+    "test:browser": "npm --prefix tests/browser test"
   },
   "bin": {
     "applet": "tools/applet.mjs"

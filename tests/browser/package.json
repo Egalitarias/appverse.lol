@@ -1,0 +1,12 @@
+{
+  "name": "appverse-browser-tests",
+  "private": true,
+  "type": "module",
+  "description": "Escape-route tests that run the sandbox in real browsers. Kept apart so the site and `npm test` stay free of dependencies.",
+  "scripts": {
+    "test": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.64.0"
+  }
+}

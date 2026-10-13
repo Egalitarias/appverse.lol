@@ -1,0 +1,28 @@
+name: browser tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  escape-routes:
+    name: sandbox escape routes (Chromium, Firefox, WebKit)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: tests/browser
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: tests/browser/package-lock.json
+      # the only dependency in the project, kept in tests/browser so the site and `npm test` stay free of dependencies
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium firefox webkit
+      - run: npx playwright test

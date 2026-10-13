@@ -47,8 +47,9 @@ WebRTC, `sendBeacon`, popups, navigation).
 ## Status
 
 Working and live at https://appverse.lol: the sandboxed runner, the library, the in-browser packer, the `applet` command (published on npm as
-`appverse`), the downloads on `make.html`, and one example app. The sandbox is covered by unit tests only: it has not been tested in real
-browsers yet, and apps still run on the main origin (see Next steps).
+`appverse`), the downloads on `make.html`, and one example app. The sandbox is covered by unit tests and by escape-route tests in Chromium, Firefox and WebKit
+(`docs/browser-tests.md`); two gaps are known (WebRTC in Chromium, and storage keyed by an app's own id), and apps still run on the main
+origin (see Next steps).
 
 ## Code
 
@@ -64,9 +65,10 @@ browsers yet, and apps still run on the main origin (see Next steps).
 - `tools/build-examples.mjs` repacks every `examples/<name>/` and rewrites `examples/catalog.json` (run it after changing an example, and commit the output).
 - `examples/notes`: a notepad using `storage` and `clipboard`, with its packed `notes.applet`.
 - `tests/sandbox.test.mjs`: `npm test`.
+- `tests/browser/`: the escape-route tests, which run a hostile app in real browsers (Playwright, its own `package.json`): `npm run test:browser`. See `docs/browser-tests.md`.
 
 ## Next steps
 
-1. An escape-route test page and Playwright tests across Chromium, Firefox and WebKit (the unit tests do not run a browser).
+1. Close the two known gaps in `docs/browser-tests.md` (WebRTC in Chromium; storage keyed by a self-declared id).
 2. More example apps.
 3. Serve apps from a separate origin.
