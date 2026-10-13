@@ -3,7 +3,7 @@
 # Layout under /var/www/appverse-site (made by tools/deploy.sh):
 #   builds/<commit>/   one folder per deployed commit, never edited
 #   current            symlink to a build; served at https://appverse.lol/
-appverse.lol, www.appverse.lol {
+appverse.lol {
 	encode gzip
 
 	root * /var/www/appverse-site/current

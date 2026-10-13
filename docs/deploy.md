@@ -15,7 +15,7 @@ The site is plain static files; there is no build step. This mirrors Gameverse's
 
 ## First-time setup (once, on a new server)
 
-1. Point DNS for `appverse.lol` (and `www`) at the server.
+1. Point DNS for `appverse.lol` at the server.
 2. Install Caddy, then put the config in place:
 
    ```
