@@ -75,3 +75,16 @@ export function validateManifest(raw) {
     permissions: [...new Set(permissions)],
   };
 }
+
+/**
+ * What a stranger sees first when they open a package's manifest.json in a zip viewer or on a web site: what the file is and
+ * how to run it. The packers write these two fields right after "applet"; players ignore them, and they are never required.
+ */
+export const APPLET_ABOUT = 'An Appverse app (.applet): a small zip holding a web app (HTML, CSS and JavaScript), which runs in a sandbox with no network access. To run it, open https://appverse.lol and drop this file on the home page.';
+export const APPLET_PLAY_AT = 'https://appverse.lol/';
+
+/** manifest.json text for a package: "applet", then "about" and "playAt", then the rest of the fields in their order. */
+export function appletManifestText(fields) {
+  const { applet = 1, about, playAt, ...rest } = fields; // anything stale is replaced
+  return JSON.stringify({ applet, about: APPLET_ABOUT, playAt: APPLET_PLAY_AT, ...rest }, null, 2) + '\n';
+}

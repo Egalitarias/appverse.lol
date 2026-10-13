@@ -38,3 +38,14 @@ th { background: var(--panel); }
 #screen { display: flex; justify-content: center; }
 iframe { border-radius: 8px; }
 iframe:fullscreen { width: 100% !important; max-width: none !important; height: 100% !important; aspect-ratio: auto !important; border-radius: 0; }
+#dropzone { display: block; border: 2px dashed var(--dim); border-radius: 12px; padding: 28px 16px; text-align: center; cursor: pointer; margin: 12px 0; }
+#dropzone strong { display: block; font-size: 18px; }
+#dropzone span { color: var(--dim); font-size: 14px; }
+#dropzone:hover, #dropzone:focus-visible, #dropzone.over { border-color: var(--accent); background: #7c5cff18; outline: none; }
+#lib-error { background: #ff6b6b22; border: 1px solid var(--bad); color: var(--bad); padding: 10px 14px; border-radius: 8px; white-space: pre-wrap; }
+input[type=search] { background: #0d0d14; color: var(--fg); border: 1px solid #ffffff2a; border-radius: 8px; padding: 8px 10px; font: inherit; max-width: 300px; width: 100%; }
+.apps { list-style: none; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+.apps li { background: var(--panel); border-radius: 12px; padding: 12px 16px; }
+.apps h3 { margin: 0 0 2px; }
+.apps p { margin: 6px 0; }
+.apps button:disabled { opacity: .6; cursor: not-allowed; }

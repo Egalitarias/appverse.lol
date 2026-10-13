@@ -1,0 +1,16 @@
+[
+  {
+    "slug": "notes",
+    "id": "lol.appverse.notes",
+    "title": "Notes",
+    "author": "Appverse",
+    "description": "A tiny notepad. It saves as you type and can copy the text.",
+    "license": "MIT",
+    "permissions": [
+      "storage",
+      "clipboard"
+    ],
+    "size": 1539,
+    "file": "examples/notes.applet"
+  }
+]

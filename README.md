@@ -41,13 +41,15 @@ Skeleton: pages, styles, branding, docs for the model, `llms.txt`, `robots.txt`,
 - `js/manifest.js`: manifest validation, allowed file kinds, the no-own-CSP rule.
 - `js/sandbox.js`: document builder (CSP first, bridge shim, inlining), the permission-checked bridge, and `runApplet` for the iframe.
 - `js/main.js`: the home page: drop or choose an `.applet`, see its permissions, Run, Stop.
-- `tools/pack.mjs`: `node tools/pack.mjs examples/notes examples/notes.applet` checks a folder and packs it.
+- `js/library.js`, `library.html`: the library: add `.applet` files (kept in IndexedDB), run, download, remove, search, plus the featured examples from `examples/catalog.json`.
+- `js/packer.js`: tidy a set of files, guess and validate a manifest, `lintApplet` (network use, browser storage, missing permissions, modules...), `buildApplet`. No DOM, so it also runs in Node.
+- `tools/pack.mjs`: `node tools/pack.mjs examples/notes out.applet` checks a folder with the packer and packs it; `tools/build-examples.mjs` repacks every `examples/<name>/` and rewrites `examples/catalog.json` (run it after changing an example, and commit the output).
 - `examples/notes`: a notepad using `storage` and `clipboard`, with its packed `notes.applet`.
 - `tests/sandbox.test.mjs`: `npm test`.
 
 ## Next steps
 
-1. Port `js/library.js` and `js/packer.js` (an in-browser packer).
+1. An in-browser packer page (`pack.html`, as on Gameverse) on top of `js/packer.js`.
 2. An escape-route test page and Playwright tests across Chromium, Firefox and WebKit (the unit tests do not run a browser).
 3. The `applet` CLI (`new`, `check`, `pack`, `dev`, `inspect`), a few example apps, a library page.
 4. Serve apps from a separate origin and set the page CSP (inline script/style, `data:` media) in the production server config.

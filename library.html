@@ -23,11 +23,44 @@
     <a href="spec.html">Spec</a>
     <a href="privacy.html">Privacy</a>
   </nav>
-  <main class="doc">
+  <main class="doc library">
     <h1>Library</h1>
-    <p>Your <code>.applet</code> files and the featured examples will appear here.</p>
-    <p class="small">Not built yet. Planned: a local library in IndexedDB (as on Gameverse) plus a searchable example catalog.</p>
+    <p>Run the featured example apps, or add <code>.applet</code> files to your own library to list, run and download them. Your library lives in this browser (IndexedDB); nothing is uploaded.</p>
+    <div id="dropzone" tabindex="0" role="button" aria-label="Drop .applet files here, or press Enter to choose files">
+      <strong>Drop .applet files here</strong>
+      <span>or click to choose them</span>
+      <input id="in-files" type="file" accept=".applet" multiple hidden>
+    </div>
+    <p id="lib-error" role="alert" hidden></p>
+    <p id="lib-note" role="status" class="small" hidden></p>
+
+    <section id="stage" hidden>
+      <div class="bar">
+        <strong id="s-title"></strong>
+        <span>
+          <button id="full" class="secondary">Fullscreen</button>
+          <button id="stop" class="secondary">Stop</button>
+        </span>
+      </div>
+      <div id="screen"></div>
+    </section>
+
+    <div class="bar">
+      <h2 id="feat-count">Featured apps</h2>
+      <input id="lib-search" type="search" placeholder="Search title, author, description" aria-label="Search apps">
+    </div>
+    <p class="small">Example apps from Appverse. Run them here, or add one to your library to keep it in this browser.</p>
+    <ul id="feat-list" class="apps"></ul>
+    <p id="feat-note" class="small" hidden></p>
+
+    <div class="bar">
+      <h2 id="lib-count">Your apps</h2>
+    </div>
+    <ul id="lib-list" class="apps"></ul>
+    <p id="lib-empty" class="small">Nothing here yet. Add an <code>.applet</code> above, or <a href="make.html">make one</a>.</p>
+    <p class="small">The library is stored in this browser. Clearing site data removes it, so keep your original <code>.applet</code> files or use Download.</p>
   </main>
+  <script type="module" src="js/library.js"></script>
   <footer><p class="small">Appverse is a sibling of <a href="https://gameverse.lol">Gameverse</a>. <a href="privacy.html">Privacy</a></p></footer>
 </body>
 </html>
