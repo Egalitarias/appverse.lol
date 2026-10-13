@@ -28,6 +28,17 @@
     <h1>Make an app</h1>
     <p>An Appverse app is an ordinary web app: HTML, CSS and JavaScript, zipped into one <code>.applet</code> file. There is no new language to learn. If it runs as a static site with no server, it can run here.</p>
 
+    <section class="downloads" aria-label="Downloads">
+      <h2>Downloads</h2>
+      <p>Both are zipped in your browser from files this site already serves. Nothing is uploaded.</p>
+      <p>
+        <button data-bundle="starter" class="secondary">Download the starter app</button>
+        <button data-bundle="tools" class="secondary">Download the tools (zip)</button>
+      </p>
+      <p id="dl-note" role="alert" hidden></p>
+      <p class="small">The tools need <a href="https://nodejs.org/">Node.js</a> 20 or newer and have no install step: unzip, then <code>node tools/applet.mjs new my-app</code>.</p>
+    </section>
+
     <h2>1. Write it</h2>
     <p>Put an <code>index.html</code> in a folder, with any CSS, JS, images and fonts it needs. Everything must be in the folder: the sandbox blocks all network requests, so no CDN links, web fonts or API calls.</p>
     <pre><code>my-app/
@@ -52,7 +63,7 @@ const saved = await appverse.storage.get("notes");</code></pre>
 applet check my-app            # missing files, external URLs, own CSP, blocked APIs
 applet pack my-app notes.applet
 applet dev my-app              # open it in the sandbox, reload on save</code></pre>
-    <p class="small">The <code>applet</code> command is <code>tools/applet.mjs</code> in the <a href="https://github.com/Egalitarias/appverse.lol">Appverse repo</a> (Node 20+, no install): <code>node tools/applet.mjs new my-app</code> starts an app from a template, and <code>check</code>, <code>pack</code>, <code>dev</code>, <code>inspect</code> and <code>unpack</code> work as above. <code>--strict</code> makes warnings fail too.</p>
+    <p class="small">The <code>applet</code> command comes in the tools download above (<code>node tools/applet.mjs …</code>): <code>new</code> starts an app from a template, and <code>check</code>, <code>pack</code>, <code>dev</code>, <code>inspect</code> and <code>unpack</code> work as shown. <code>--strict</code> makes warnings fail too.</p>
 
     <h2>What does not work</h2>
     <ul>
@@ -61,6 +72,7 @@ applet dev my-app              # open it in the sandbox, reload on save</code></
       <li>A <code>Content-Security-Policy</code> of your own: Appverse injects one and rejects packages that ship another.</li>
     </ul>
   </main>
+  <script type="module" src="js/make.js"></script>
   <footer><p class="small">Appverse is a sibling of <a href="https://gameverse.lol">Gameverse</a>. <a href="privacy.html">Privacy</a></p></footer>
 </body>
 </html>

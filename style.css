@@ -75,3 +75,8 @@ input[type=search] { background: #0d0d14; color: var(--fg); border: 1px solid #f
 .actions button { margin-right: 8px; }
 #action-note { color: var(--dim); }
 button:disabled { opacity: .6; cursor: not-allowed; }
+.downloads { background: var(--panel); border-radius: 12px; padding: 4px 18px 8px; margin-bottom: 18px; }
+.downloads h2 { margin: 12px 0 8px; font-size: 18px; border: 0; padding: 0; }
+.downloads p { margin: 8px 0; }
+.downloads button { margin: 0 6px 6px 0; }
+#dl-note { color: var(--bad); }
