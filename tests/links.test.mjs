@@ -24,3 +24,8 @@ test('the workflow runs the tests on Linux and Windows without a build step', ()
   assert.match(yml, /permissions:\s*\n\s+contents: read/, 'the workflow token must be read-only');
   assert.ok(!/npm (ci|install)|secrets\./.test(yml), 'no install step and no secrets are needed');
 });
+
+test('the test script has no glob, because Node 20 (which the tools support) cannot expand one', () => {
+  const pkg = JSON.parse(readFileSync(new URL('package.json', root), 'utf8'));
+  assert.ok(!pkg.scripts.test.includes('*'), `scripts.test is "${pkg.scripts.test}"`);
+});
