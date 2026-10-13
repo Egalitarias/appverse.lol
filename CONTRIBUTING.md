@@ -3,7 +3,7 @@ DRAFT. Not legal advice: have a lawyer review the "Licensing your contribution" 
   - [OWNER]: who receives the contributor licence (you, or a company once one exists).
   - [CONTACT EMAIL]: a mailbox for security reports.
   - Decide how agreement is recorded: a CLA bot on pull requests, or the sign-off line described below.
-  - If the licence changes (see docs/open-core.md), update "What this repository is" and "Licensing your contribution".
+  - If the licence changes, update "What this repository is" and "Licensing your contribution".
 -->
 
 # Contributing to Appverse

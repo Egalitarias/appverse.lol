@@ -15,7 +15,7 @@ npm test
 [ -z "$(git status --porcelain)" ] || { echo "Uncommitted changes; commit first." >&2; exit 1; }
 SHA=$(git rev-parse --short HEAD)
 
-# Everything tracked except tests/, docs/ (internal notes), TRADEMARK.md and CONTRIBUTING.md (drafts: remove them from the list below when they are final), the deploy files and dotfiles (tools/applet*.mjs and tools/pack-folder.mjs ARE served: the tools download on make.html zips them); the server has no git checkout. A build that already exists is identical and is reused.
+# Everything tracked except tests/, TRADEMARK.md and CONTRIBUTING.md (drafts: remove them from the list below when they are final), the deploy files and dotfiles (tools/applet*.mjs and tools/pack-folder.mjs ARE served: the tools download on make.html zips them); the server has no git checkout. A build that already exists is identical and is reused.
 if ssh "$HOST" "[ -d $BASE/builds/$SHA ]"; then
   echo "Build $SHA is already on the server."
 else
