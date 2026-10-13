@@ -15,7 +15,7 @@ async function appletWithProbes(canary, opts) {
   const manifest = { applet: 1, id: 'test.escape', title: 'Escape attempts', entry: 'index.html', width: 480, height: 360, permissions: [] };
   const zip = buildZip([
     ['manifest.json', enc.encode(JSON.stringify(manifest))],
-    ['index.html', enc.encode(probePage({ canary: canary.url, udpPorts: canary.udpPorts, tcpPorts: canary.tcpPorts, udpHost: canary.udpHost, phase: 's', site: opts.siteUrl, ...opts }))],
+    ['index.html', enc.encode(probePage({ canary: canary.url, udpPorts: canary.udpPorts, tcpPorts: canary.tcpPorts, httpPorts: canary.httpPorts, udpHost: canary.udpHost, phase: 's', site: opts.siteUrl, ...opts }))],
   ]);
   return Buffer.from(await zip.arrayBuffer());
 }
@@ -54,7 +54,7 @@ async function waitFor(fn, ms = 40_000) {
 const cookieNames = async (context, url) => (await context.cookies(url)).map((c) => c.name).sort();
 
 async function sandboxed(browser) {
-  const canary = await startCanary({ udp: UDP_PROBES, tcp: TCP_PROBES });
+  const canary = await startCanary({ udp: UDP_PROBES, tcp: TCP_PROBES, http: PROBES.map((p) => p.name) });
   const site = await startSite();
   const w = await watch(browser, site.url);
   const hostUrl = `${site.url}/index.html`;
@@ -91,8 +91,8 @@ async function sandboxed(browser) {
 }
 
 async function control(browser) {
-  const canary = await startCanary({ udp: UDP_PROBES, tcp: TCP_PROBES });
-  const site = await startSite({ '/__control/probe.html': probePage({ canary: canary.url, udpPorts: canary.udpPorts, tcpPorts: canary.tcpPorts, udpHost: canary.udpHost, phase: 'c', site: null }) });
+  const canary = await startCanary({ udp: UDP_PROBES, tcp: TCP_PROBES, http: PROBES.map((p) => p.name) });
+  const site = await startSite({ '/__control/probe.html': probePage({ canary: canary.url, udpPorts: canary.udpPorts, tcpPorts: canary.tcpPorts, httpPorts: canary.httpPorts, udpHost: canary.udpHost, phase: 'c', site: null }) });
   const w = await watch(browser, site.url);
   // a page that never finishes loading (streams, workers, frames) must not hold us up: wait for the probes, not for "load"
   await w.page.goto(`${site.url}/__control/probe.html?group=main`, { waitUntil: 'commit' });

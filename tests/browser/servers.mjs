@@ -66,19 +66,30 @@ export async function startSite(pages = {}) {
 const nameOf = (url) => /^\/probe\/([^/?#.]+)/.exec(new URL(url, 'http://x').pathname)?.[1] ?? '(other)';
 
 /** `udp` and `tcp` name the ports to open, one per attack that sends no HTTP (WebRTC; a preconnect hint), so a packet or connection says which. */
-export async function startCanary({ udp = [], tcp = [] } = {}) {
+export async function startCanary({ udp = [], tcp = [], http = [] } = {}) {
   const hits = [];
-  const server = createServer((req, res) => {
+  const handle = (req, res) => {
     const name = nameOf(req.url);
     hits.push({ kind: 'http', name, method: req.method, url: req.url, origin: req.headers.origin ?? '', t: Date.now() });
     const path = new URL(req.url, 'http://x').pathname;
     const type = path.endsWith('.js') ? TYPES['.js'] : path.endsWith('.css') || /^\/probe\/(css-import|link-stylesheet)/.test(path) ? TYPES['.css'] : 'image/gif';
     res.writeHead(200, { 'Content-Type': type, 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'no-store', Connection: 'close' });
     res.end(type === 'image/gif' ? GIF : type === TYPES['.css'] ? 'body{}' : 'void 0;');
-  });
+  };
+  const upgrade = (req, socket) => { hits.push({ kind: 'ws', name: nameOf(req.url), url: req.url, t: Date.now() }); socket.destroy(); };
+  const server = createServer(handle);
   server.on('connection', () => hits.push({ kind: 'tcp', name: '(connection)', t: Date.now() }));
-  server.on('upgrade', (req, socket) => { hits.push({ kind: 'ws', name: nameOf(req.url), url: req.url, t: Date.now() }); socket.destroy(); });
+  server.on('upgrade', upgrade);
   const port = await listen(server);
+  // one more HTTP port per attack: a bare connection says nothing, but the port it went to says which attack's address it was
+  const httpServers = {};
+  for (const name of http) {
+    const s = createServer(handle);
+    s.on('connection', () => hits.push({ kind: 'tcp', name, t: Date.now() }));
+    s.on('upgrade', upgrade);
+    httpServers[name] = { server: s, port: await listen(s) };
+  }
+  const httpPorts = Object.fromEntries(Object.entries(httpServers).map(([name, s]) => [name, s.port]));
 
   // UDP listeners for WebRTC: STUN requests to them are traffic that a content-security-policy cannot stop
   const sockets = {};
@@ -99,6 +110,7 @@ export async function startCanary({ udp = [], tcp = [] } = {}) {
     url: `http://127.0.0.1:${port}`,
     udpPorts,
     tcpPorts,
+    httpPorts,
     udpHost: lanAddress(),
     hits,
     reset: () => { hits.length = 0; },
@@ -106,6 +118,6 @@ export async function startCanary({ udp = [], tcp = [] } = {}) {
     named: (name) => hits.filter((h) => (h.kind === 'http' || h.kind === 'ws') && h.name === name),
     /** Contacts that have no path: a bare connection or a UDP packet. */
     bare: () => hits.filter((h) => h.kind === 'tcp' || h.kind === 'udp'),
-    close: () => new Promise((ok) => { for (const { socket } of Object.values(sockets)) socket.close(); for (const { server: s } of Object.values(tcpServers)) s.close(); server.closeAllConnections(); server.close(ok); }),
+    close: () => new Promise((ok) => { for (const { socket } of Object.values(sockets)) socket.close(); for (const { server: s } of [...Object.values(tcpServers), ...Object.values(httpServers)]) { s.closeAllConnections?.(); s.close(); } server.closeAllConnections(); server.close(ok); }),
   };
 }

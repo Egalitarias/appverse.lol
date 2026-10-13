@@ -213,7 +213,7 @@ export const TCP_PROBES = PROBES.filter((p) => p.tcp).map((p) => p.name);
  * ones last. The same can be given as a query (`?only=name`) on the control page; inside an app there is no query, so it is baked in.
  * `early` probes run at once, while the page is still being parsed; the others wait for the page to load.
  */
-export function probePage({ canary, udpPorts = {}, tcpPorts = {}, udpHost = '127.0.0.1', phase = 'x', site, only = null, group = null }) {
+export function probePage({ canary, udpPorts = {}, tcpPorts = {}, httpPorts = {}, udpHost = '127.0.0.1', phase = 'x', site, only = null, group = null }) {
   const body = PROBES.map((p) => `${JSON.stringify(p.name)}: async () => { ${p.code} }`).join(',\n');
   return `<!doctype html>
 <html><head><meta charset="utf-8"><title>probes</title>
@@ -222,12 +222,14 @@ const C = ${JSON.stringify(canary)};
 const UDPS = ${JSON.stringify(udpPorts)};
 const UDPHOST = ${JSON.stringify(udpHost)};
 const TCPS = ${JSON.stringify(tcpPorts)};
+const HTTPPORTS = ${JSON.stringify(httpPorts)};
 // a host that nothing answers for: the browser's own log shows whether it was looked up, and the name says which attack and which run
 const dnsHost = (name) => name + '.${phase}.canary.test';
 const SITE = ${JSON.stringify(site)} ?? location.origin; // an app is told the site's address; the control page is the site
 const CONFIG = ${JSON.stringify({ only, group })};
 const s = (n) => SITE + '/probe/' + n;
-const u = (n) => C + '/probe/' + n;
+// each attack has an address of its own on the canary, so even a bare connection says which attack it was meant for
+const u = (n) => (HTTPPORTS[n] ? 'http://127.0.0.1:' + HTTPPORTS[n] : C) + '/probe/' + n;
 const report = (name, result, detail) => parent.postMessage({ escape: 1, name, result, detail: String(detail ?? '').slice(0, 160) }, '*');
 const html = (markup) => document.body.insertAdjacentHTML('beforeend', markup);
 const css = (text) => { const s = document.createElement('style'); s.textContent = text; document.head.appendChild(s); };
