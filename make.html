@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Make an Appverse app</title>
+  <meta name="description" content="How to write, pack and share an Appverse app.">
+  <link rel="canonical" href="https://appverse.lol/make.html">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Appverse">
+  <meta property="og:title" content="Make an Appverse app">
+  <meta property="og:description" content="How to write, pack and share an Appverse app.">
+  <meta property="og:url" content="https://appverse.lol/make.html">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <nav class="nav">
+    <a class="brand" href="./">Appverse</a>
+    <a href="index.html">Home</a>
+    <a href="library.html">Library</a>
+    <a href="make.html" aria-current="page">Make an app</a>
+    <a href="spec.html">Spec</a>
+    <a href="privacy.html">Privacy</a>
+  </nav>
+  <main class="doc">
+    <h1>Make an app</h1>
+    <p>An Appverse app is an ordinary web app: HTML, CSS and JavaScript, zipped into one <code>.applet</code> file. There is no new language to learn. If it runs as a static site with no server, it can run here.</p>
+
+    <h2>1. Write it</h2>
+    <p>Put an <code>index.html</code> in a folder, with any CSS, JS, images and fonts it needs. Everything must be in the folder: the sandbox blocks all network requests, so no CDN links, web fonts or API calls.</p>
+    <pre><code>my-app/
+  manifest.json
+  index.html
+  app.js
+  style.css</code></pre>
+
+    <h2>2. Add a manifest</h2>
+    <pre><code>{ "applet": 1, "id": "com.example.notes", "title": "Notes", "author": "Me",
+  "version": "1.0.0", "entry": "index.html", "width": 480, "height": 640,
+  "permissions": ["storage"] }</code></pre>
+
+    <h2>3. Save data</h2>
+    <p>Apps have no <code>localStorage</code> or cookies of their own (the sandbox has an opaque origin). With the <code>storage</code> permission, use the small bridge Appverse injects:</p>
+    <pre><code>await appverse.storage.set("notes", JSON.stringify(notes));
+const saved = await appverse.storage.get("notes");</code></pre>
+
+    <h2>4. Check and pack</h2>
+    <pre><code>applet check my-app            # missing files, external URLs, own CSP, blocked APIs
+applet pack my-app notes.applet
+applet dev my-app              # open it in the sandbox, reload on save</code></pre>
+    <p class="small">The <code>applet</code> command is not written yet.</p>
+
+    <h2>What does not work</h2>
+    <ul>
+      <li>Network access of any kind: <code>fetch</code>, WebSocket, WebRTC, remote images, fonts, scripts or stylesheets.</li>
+      <li>Popups, navigating the page away, service workers, <code>localStorage</code>, cookies and <code>document.domain</code>.</li>
+      <li>A <code>Content-Security-Policy</code> of your own: Appverse injects one and rejects packages that ship another.</li>
+    </ul>
+  </main>
+  <footer><p class="small">Appverse is a sibling of <a href="https://gameverse.lol">Gameverse</a>. <a href="privacy.html">Privacy</a></p></footer>
+</body>
+</html>

@@ -1,0 +1,5 @@
+# Appverse: everything public is welcome.
+User-agent: *
+Disallow: /api/
+
+Sitemap: https://appverse.lol/sitemap.xml

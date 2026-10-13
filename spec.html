@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Appverse specification</title>
+  <meta name="description" content="The Appverse package format and sandbox rules.">
+  <link rel="canonical" href="https://appverse.lol/spec.html">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Appverse">
+  <meta property="og:title" content="Appverse specification">
+  <meta property="og:description" content="The Appverse package format and sandbox rules.">
+  <meta property="og:url" content="https://appverse.lol/spec.html">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <nav class="nav">
+    <a class="brand" href="./">Appverse</a>
+    <a href="index.html">Home</a>
+    <a href="library.html">Library</a>
+    <a href="make.html">Make an app</a>
+    <a href="spec.html" aria-current="page">Spec</a>
+    <a href="privacy.html">Privacy</a>
+  </nav>
+  <main class="doc">
+    <h1>Specification</h1>
+    <p>Draft 1. An <code>.applet</code> is a zip of static web files plus a <code>manifest.json</code>. Appverse unpacks it in the browser and runs it in a locked-down sandbox.</p>
+
+    <h2>Manifest</h2>
+    <div class="table-wrap"><table>
+      <tr><th>Field</th><th>Required</th><th>Meaning</th></tr>
+      <tr><td><code>applet</code></td><td>yes</td><td>Format version, currently <code>1</code>.</td></tr>
+      <tr><td><code>id</code></td><td>yes</td><td>Reverse-domain id, e.g. <code>com.example.notes</code>.</td></tr>
+      <tr><td><code>title</code>, <code>author</code>, <code>version</code></td><td>yes</td><td>Shown on the permission card.</td></tr>
+      <tr><td><code>entry</code></td><td>yes</td><td>HTML file to load, normally <code>index.html</code>.</td></tr>
+      <tr><td><code>width</code>, <code>height</code></td><td>no</td><td>Preferred frame size in CSS pixels.</td></tr>
+      <tr><td><code>permissions</code></td><td>no</td><td>List from the table below. Shown to the user before the app runs.</td></tr>
+    </table></div>
+
+    <h2>Permissions</h2>
+    <div class="table-wrap"><table>
+      <tr><th>Permission</th><th>Gives the app</th></tr>
+      <tr><td><code>storage</code></td><td><code>appverse.storage.get/set/remove</code>, a per-app key-value store kept in the visitor's browser.</td></tr>
+      <tr><td><code>fullscreen</code></td><td>Ability to ask for fullscreen, on a user gesture.</td></tr>
+      <tr><td><code>clipboard</code></td><td>Write to the clipboard, on a user gesture.</td></tr>
+      <tr><td><code>network</code> (planned)</td><td>Requests to an allowlist of hosts declared in the manifest and shown to the user.</td></tr>
+    </table></div>
+
+    <h2>The sandbox</h2>
+    <ul>
+      <li>The package is read and unpacked in the browser; nothing is uploaded. The zip reader rejects path traversal, duplicate names, encrypted or zip64 entries, bad CRCs, entries larger than declared, and packages over the file-count and size caps.</li>
+      <li>The app runs in <code>&lt;iframe sandbox="allow-scripts"&gt;</code>, with no <code>allow-same-origin</code>, popups or top navigation, so it has an opaque origin and cannot touch the host page, cookies or storage.</li>
+      <li>In production the frame is served from a separate origin (for example <code>*.appverse-apps.lol</code>) so a sandbox escape does not reach the main site.</li>
+      <li>Appverse rewrites the entry HTML on load and inserts a CSP <code>&lt;meta&gt;</code> as the first element of <code>&lt;head&gt;</code>:
+        <pre><code>default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob:;
+media-src data: blob:; font-src data:; worker-src blob:; connect-src 'none'; frame-src 'none';
+form-action 'none'; base-uri 'none'</code></pre>
+        The package's files are inlined into that one document: scripts and stylesheets become inline code, and images, fonts and media become <code>data:</code> URLs. A reference to anything outside the package (<code>http:</code>, <code>//host</code>) or to a missing file is an error. Bundle your JavaScript into plain scripts: ES module <code>import</code> of other files does not work. A package whose HTML already has a CSP meta tag is rejected.</li>
+      <li>The only way out is a small <code>postMessage</code> bridge, gated by the manifest permissions.</li>
+    </ul>
+
+    <h2>Known limits</h2>
+    <ul>
+      <li>An app can use a lot of CPU or memory. <strong>Stop</strong> destroys the frame.</li>
+      <li>An app can show misleading content, such as a fake sign-in form. The frame is labelled as untrusted, and the player says never to enter passwords. Only run apps from people you trust.</li>
+      <li>CSP and sandbox behaviour differ slightly between browsers, so the test suite checks the escape routes (<code>fetch</code>, images, CSS <code>url()</code>, forms, WebRTC, <code>sendBeacon</code>, popups, navigation) in each engine.</li>
+    </ul>
+  </main>
+  <footer><p class="small">Appverse is a sibling of <a href="https://gameverse.lol">Gameverse</a>. <a href="privacy.html">Privacy</a></p></footer>
+</body>
+</html>

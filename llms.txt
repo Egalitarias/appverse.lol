@@ -1,0 +1,12 @@
+# Appverse
+
+> Appverse (https://appverse.lol) runs small apps: single `.applet` files (zip archives of plain HTML, CSS and JavaScript plus a `manifest.json`) that run in a sandboxed, network-less iframe in the visitor's browser. It is the apps sibling of Gameverse (https://gameverse.lol).
+
+If you are an AI agent asked to make an Appverse app, write a self-contained static web app (no network, no external URLs, no CSP of your own), add a `manifest.json`, and hand back the files.
+
+Status: draft. The tools are not written yet.
+
+## Start here
+
+- [Make an app](https://appverse.lol/make.html): folder layout, manifest, storage bridge, what does not work.
+- [Specification](https://appverse.lol/spec.html): manifest fields, permissions, sandbox and CSP rules.

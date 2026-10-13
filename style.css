@@ -1,0 +1,32 @@
+:root { color-scheme: dark; --bg: #14141c; --panel: #1f1f2b; --fg: #e8e8f0; --dim: #9a9ab0; --accent: #7c5cff; --bad: #ff6b6b; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.5 system-ui, sans-serif; }
+main, footer { max-width: 860px; margin: 0 auto; padding: 16px; }
+a { color: #a99bff; }
+code { background: #0003; padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere; }
+pre { background: #0d0d14; padding: 12px 14px; border-radius: 8px; overflow-x: auto; font-size: 14px; line-height: 1.45; }
+pre code { background: none; padding: 0; word-break: normal; }
+.small { font-size: 13px; color: var(--dim); }
+.sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+.nav { max-width: 860px; margin: 0 auto; padding: 12px 16px 0; display: flex; flex-wrap: wrap; gap: 4px 18px; }
+.nav a { color: var(--dim); text-decoration: none; white-space: nowrap; }
+.nav a:hover, .nav a[aria-current] { color: var(--fg); }
+.nav .brand { color: var(--fg); font-weight: 700; letter-spacing: .14em; text-transform: uppercase; margin-right: 10px; }
+.hero { text-align: center; padding: 48px 16px 32px; }
+.hero h2 { font-size: 34px; margin: 0 0 8px; }
+.hero p { color: var(--dim); max-width: 560px; margin: 0 auto 20px; }
+a.button, button { display: inline-block; background: var(--accent); color: #fff; border: 0; border-radius: 8px; padding: 8px 18px; font: inherit; text-decoration: none; cursor: pointer; margin: 0 6px 6px 0; }
+a.button.secondary, button.secondary { background: #3a3a4c; }
+#drop { border: 2px dashed var(--dim); border-radius: 12px; padding: 36px 16px; text-align: center; cursor: pointer; }
+#drop:hover, #drop:focus-visible, #drop.over { border-color: var(--accent); background: #7c5cff18; outline: none; }
+#drop strong { display: block; font-size: 18px; }
+#drop span { color: var(--dim); font-size: 14px; }
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; margin: 16px 0; }
+.card { background: var(--panel); border-radius: 12px; padding: 14px 16px; }
+.card h3 { margin: 0 0 4px; }
+.card p { margin: 0; color: var(--dim); font-size: 14px; }
+.doc h2 { margin-top: 32px; border-bottom: 1px solid #ffffff22; padding-bottom: 4px; }
+.table-wrap { overflow-x: auto; }
+table { border-collapse: collapse; margin: 8px 0 16px; font-size: 15px; }
+th, td { border: 1px solid #ffffff22; padding: 5px 10px; text-align: left; vertical-align: top; }
+th { background: var(--panel); }
