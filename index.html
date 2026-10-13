@@ -25,7 +25,7 @@
   </nav>
   <main>
     <h1 class="sr-only">Appverse: run app packages safely in your browser</h1>
-    <section class="hero">
+    <section class="hero" id="hero">
       <h2>Small apps. Safe sandbox. No install.</h2>
       <p>Appverse runs <code>.applet</code> packages in a network-less sandbox in your browser. Open one, use it, share it.</p>
       <a class="button" href="library.html">Browse the library</a>
@@ -34,7 +34,31 @@
     <div id="drop" tabindex="0" role="button" aria-label="Choose or drop an .applet file">
       <strong>Drop an .applet file here</strong>
       <span>or click to choose one and run it in your browser</span>
+      <input id="file" type="file" accept=".applet" hidden>
     </div>
+    <p id="error" role="alert" hidden></p>
+    <section id="card" hidden>
+      <h2 id="c-title"></h2>
+      <p id="c-meta" class="small"></p>
+      <p id="c-desc"></p>
+      <p id="c-license" class="small"></p>
+      <h3>This app asks to:</h3>
+      <ul id="c-perms"></ul>
+      <p class="small">SHA-256: <code id="c-hash"></code></p>
+      <p class="small">Apps are not checked by Appverse. Never type a password or payment details into one.</p>
+      <button id="run">Run app</button>
+      <button id="cancel" class="secondary">Cancel</button>
+    </section>
+    <section id="stage" hidden>
+      <div class="bar">
+        <strong id="s-title"></strong>
+        <span>
+          <button id="full" class="secondary">Fullscreen</button>
+          <button id="stop" class="secondary">Stop</button>
+        </span>
+      </div>
+      <div id="screen"></div>
+    </section>
     <section aria-labelledby="feat-h">
       <h2 id="feat-h">Coming soon</h2>
       <div class="cards">
@@ -45,5 +69,6 @@
     </section>
   </main>
   <footer><p class="small">Appverse is a sibling of <a href="https://gameverse.lol">Gameverse</a>. <a href="privacy.html">Privacy</a></p></footer>
+  <script type="module" src="js/main.js"></script>
 </body>
 </html>

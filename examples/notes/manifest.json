@@ -1,0 +1,13 @@
+{
+  "applet": 1,
+  "id": "lol.appverse.notes",
+  "title": "Notes",
+  "author": "Appverse",
+  "version": "1.0.0",
+  "description": "A tiny notepad. It saves as you type and can copy the text.",
+  "license": "MIT",
+  "entry": "index.html",
+  "width": 480,
+  "height": 360,
+  "permissions": ["storage", "clipboard"]
+}

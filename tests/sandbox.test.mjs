@@ -128,3 +128,16 @@ test('zip: a package round-trips, stored and compressed', async () => {
   await assert.rejects(() => buildZip([['../evil.html', enc.encode('x')]]).arrayBuffer().then(readZip), /Unsafe path/);
   await assert.rejects(() => readZip(enc.encode('not a zip at all, just text')), /Not a valid/);
 });
+
+test('the example app packs, and runs as a document', async () => {
+  const { execFileSync } = await import('node:child_process');
+  const { mkdtempSync, readFileSync } = await import('node:fs');
+  const { tmpdir } = await import('node:os');
+  const out = `${mkdtempSync(`${tmpdir()}/applet-`)}/notes.applet`;
+  execFileSync('node', ['tools/pack.mjs', 'examples/notes', out], { cwd: new URL('../', import.meta.url) });
+  const files = await readZip(new Uint8Array(readFileSync(out)));
+  const m = validateManifest(JSON.parse(new TextDecoder().decode(files.get('manifest.json'))));
+  const doc = buildDocument(m, files);
+  assert.ok(doc.includes('appverse.storage.get') && doc.includes('textarea { flex: 1'));
+  assert.ok(!/\s(?:src|href)="(?!data:|#)/.test(doc.slice(doc.indexOf('<title>Notes'))));
+});

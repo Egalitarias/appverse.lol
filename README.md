@@ -40,11 +40,14 @@ Skeleton: pages, styles, branding, docs for the model, `llms.txt`, `robots.txt`,
 - `js/zip.js`, `js/zipwrite.js`: hostile-input zip reader and a zip writer (from Gameverse).
 - `js/manifest.js`: manifest validation, allowed file kinds, the no-own-CSP rule.
 - `js/sandbox.js`: document builder (CSP first, bridge shim, inlining), the permission-checked bridge, and `runApplet` for the iframe.
+- `js/main.js`: the home page: drop or choose an `.applet`, see its permissions, Run, Stop.
+- `tools/pack.mjs`: `node tools/pack.mjs examples/notes examples/notes.applet` checks a folder and packs it.
+- `examples/notes`: a notepad using `storage` and `clipboard`, with its packed `notes.applet`.
 - `tests/sandbox.test.mjs`: `npm test`.
 
 ## Next steps
 
-1. Wire the drop zone on `index.html` (card with permissions, Run, Stop) and port `js/library.js` and `js/packer.js`.
+1. Port `js/library.js` and `js/packer.js` (an in-browser packer).
 2. An escape-route test page and Playwright tests across Chromium, Firefox and WebKit (the unit tests do not run a browser).
 3. The `applet` CLI (`new`, `check`, `pack`, `dev`, `inspect`), a few example apps, a library page.
 4. Serve apps from a separate origin and set the page CSP (inline script/style, `data:` media) in the production server config.
