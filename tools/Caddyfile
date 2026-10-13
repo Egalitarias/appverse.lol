@@ -1,0 +1,30 @@
+# The production Caddy config for appverse.lol. Copy it to /etc/caddy/Caddyfile on the server (see docs/deploy.md).
+#
+# Layout under /var/www/appverse-site (made by tools/deploy.sh):
+#   builds/<commit>/   one folder per deployed commit, never edited
+#   current            symlink to a build; served at https://appverse.lol/
+appverse.lol, www.appverse.lol {
+	encode gzip
+
+	root * /var/www/appverse-site/current
+	file_server
+
+	# The page that runs apps. An app's document (an iframe srcdoc) INHERITS the page's Content-Security-Policy, and the
+	# app's scripts and styles are inlined into it (js/sandbox.js), so this page must allow 'unsafe-inline' and data: media.
+	# The app is still locked down by the sandbox attribute and by the stricter policy injected first into its own document:
+	# no network, no frames, an opaque origin.
+	@runner path_regexp runner ^/(index\.html)?$
+	# Every other page and file: no inline script or style at all.
+	@other {
+		not path_regexp runner2 ^/(index\.html)?$
+	}
+
+	header {
+		X-Content-Type-Options nosniff
+		Referrer-Policy no-referrer
+	}
+	# Check back with the server before reusing a file, so a deploy shows up straight away (files carry an ETag).
+	header Cache-Control "no-cache"
+	header @runner Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src data: blob:; font-src data:; worker-src blob:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
+	header @other Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
+}
