@@ -31,9 +31,11 @@ tools/deploy.sh
 
 Runs `npm test`, refuses to run with uncommitted changes, streams the tracked files listed in `tools/site-files.txt` (a new file stays private until it is added there) over `tar | ssh` into
 `builds/<commit>`, and repoints `current` in one atomic step. The 5 newest builds and the live one are kept. Override the server with
-`DEPLOY_HOST` / `DEPLOY_BASE`. Caddy serves from disk, so content changes need no reload; reload only after editing the Caddyfile.
+`DEPLOY_HOST` / `DEPLOY_BASE`, and the address it checks with `DEPLOY_URL`. Caddy serves from disk, so content changes need no reload; reload only after editing the Caddyfile.
 
-Roll back: `ssh root@appverse.lol 'cd /var/www/appverse-site && ls -1t builds && ln -sfn builds/<older> current.tmp && mv -T current.tmp current'`.
+After the switch it requests `/`, `/make.html`, `/js/downloads.js` and `/templates/starter/manifest.json` from the live site. If any of them fails it repoints `current` at the build it replaced, prints which request failed, and exits 1; old builds are only pruned once the check passes. If a deploy fails before the switch, `current` is untouched.
+
+Roll back by hand: `ssh root@appverse.lol 'cd /var/www/appverse-site && ls -1t builds && ln -sfn builds/<older> current.tmp && mv -T current.tmp current'`.
 
 ## Content-Security-Policy
 
