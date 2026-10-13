@@ -38,7 +38,14 @@ page, because a blocked navigation replaces the frame with an error page and end
 A gap is listed in `KNOWN_GAPS` in `escape.spec.mjs`: the test passes while the gap is open
 and fails the day it closes, so the entry gets deleted then. Nothing else is allowed through.
 
-None at the moment.
+One, found by CI, in one engine:
+
+- **A clicked link opens a connection in WebKit on Linux.** A script clicks a link with `target="_blank"` pointing at a host the app chose.
+  The sandbox blocks the popup and no request is sent, but WebKit on Linux still opens a TCP connection to that host (and so looks it up)
+  before it checks that popups are not allowed. That is a host name an app can send. Not seen in Chromium, Firefox or the WebKit that runs
+  on Windows, and not known for Safari on macOS. The check is `popup-anchor`; it is an expected failure on Linux WebKit only
+  (`KNOWN_GAPS` can name a platform), so it fails the day the engine stops doing it. A fix would have to stop script-made clicks on
+  links, which an app can get around (a link that is not on the page), so it is left open for now.
 
 ### WebRTC, and why the sandbox also refuses frames
 

@@ -10,7 +10,13 @@ import { productionHeaders } from './servers.mjs';
  * while it does, and fails the day it stops (then delete the entry, because the gap is closed). Nothing else may get through.
  */
 const KNOWN_GAPS = {
-  // none at the moment. Shape: probeName: { chromium: 'why it gets through' }
+  // probeName: { engine: 'why it gets through' }, or { engine: { reason, platforms: ['linux'] } } when only one platform's build does it
+  'popup-anchor': {
+    webkit: {
+      platforms: ['linux'],
+      reason: 'WebKit on Linux opens a TCP connection to the host of a link that a script clicks with target=_blank, before it checks that the sandbox does not allow popups. An app can make the browser look up and connect to a host it chooses (no request is sent). Not known whether Safari does the same.',
+    },
+  },
 };
 
 const cache = new Map();
@@ -19,7 +25,11 @@ const results = (info) => {
   if (!cache.has(name)) cache.set(name, JSON.parse(readFileSync(new URL(`./.results/${name}.json`, import.meta.url), 'utf8')));
   return cache.get(name);
 };
-const gapFor = (probe, engine) => KNOWN_GAPS[probe]?.[engine];
+const gapFor = (probe, engine) => {
+  const gap = KNOWN_GAPS[probe]?.[engine];
+  if (!gap || typeof gap === 'string') return gap;
+  return !gap.platforms || gap.platforms.includes(process.platform) ? gap.reason : undefined;
+};
 /** A hit written as text, with the probes that had just started when it came in (a bare connection says nothing about which attack opened it). */
 const describeHit = (h, startedAt = {}) => {
   const near = Object.entries(startedAt).filter(([, t]) => h.t && t <= h.t && h.t - t < 4000).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([n]) => n);
@@ -30,7 +40,7 @@ const named = (hits, name) => hits.filter((h) => (h.kind === 'http' || h.kind ==
 const lookups = (p, all, phase) => (all.dnsNames ?? []).filter((n) => n === `${p.name}.${phase}.canary.test`);
 const byKind = (kind) => PROBES.filter((p) => p.kind === kind);
 /** What a probe got through to: the canary's hits for it, the UDP packets sent to its own port, or the requests that reached the site's own server. */
-const reached = (p, data) => (p.origin === 'site' ? named(data.siteHits, p.name) : p.udp ? data.hits.filter((h) => h.kind === 'udp' && h.name === p.name) : p.tcp ? data.hits.filter((h) => h.kind === 'tcp' && h.name === p.name) : named(data.hits, p.name));
+const reached = (p, data) => (p.origin === 'site' ? named(data.siteHits, p.name) : p.udp ? data.hits.filter((h) => h.kind === 'udp' && h.name === p.name) : p.tcp ? data.hits.filter((h) => h.kind === 'tcp' && h.name === p.name) : [...named(data.hits, p.name), ...data.hits.filter((h) => h.kind === 'tcp' && h.name === p.name)]);
 
 // ================================================================================================================================
 test.describe('the sandbox, as a hostile app with no permissions', () => {
