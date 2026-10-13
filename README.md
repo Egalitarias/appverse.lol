@@ -46,7 +46,9 @@ WebRTC, `sendBeacon`, popups, navigation).
 
 ## Status
 
-Skeleton: pages, styles, branding, docs for the model, `llms.txt`, `robots.txt`, `sitemap.xml`. No runtime yet.
+Working and live at https://appverse.lol: the sandboxed runner, the library, the in-browser packer, the `applet` command (published on npm as
+`appverse`), the downloads on `make.html`, and one example app. The sandbox is covered by unit tests only: it has not been tested in real
+browsers yet, and apps still run on the main origin (see Next steps).
 
 ## Code
 
