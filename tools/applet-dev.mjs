@@ -57,7 +57,7 @@ async function load() {
   if ((data.findings ?? []).some((f) => f.level === 'error')) return; // fix the errors above first
   const files = new Map(Object.entries(data.files).map(([k, v]) => [k, Uint8Array.from(atob(v), (c) => c.charCodeAt(0))]));
   try {
-    running = runApplet(data.manifest, files, $('screen'));
+    running = runApplet(data.manifest, files, $('screen'), { hash: 'dev:' + data.manifest.id }); // the files change on every save, so the saved data is kept under a name that does not
   } catch (e) {
     $('problem').hidden = false;
     $('problem').textContent = String(e.message || e);

@@ -36,7 +36,7 @@ const HELP = `applet: make, test and pack Appverse apps
 "folder" defaults to the current folder. Documentation: https://appverse.lol/make.html`;
 
 const SHORT = {
-  new: 'applet new <name>\n  Creates a folder <name> from the starter template (templates/starter) with a manifest, a small working app, a README and\n  AGENTS.md (notes for AI agents). The id is set to local.<name>: change it before sharing (the id names the storage slot,\n  so use the reverse of a domain you own).',
+  new: 'applet new <name>\n  Creates a folder <name> from the starter template (templates/starter) with a manifest, a small working app, a README and\n  AGENTS.md (notes for AI agents). The id is set to local.<name>: change it before sharing (use the reverse of a\n  domain you own).',
   dev: 'applet dev [folder] [--port N] [--open]\n  Starts a server on http://localhost:<port>/ (default 8080) that runs the app in the same sandbox as the website and\n  reloads it whenever a file in the folder changes. Checks show above the app. It only listens on this computer.\n  Stop it with Ctrl+C.',
   check: 'applet check [folder | file.applet] [--strict]\n  Without a manifest.json it guesses one, like the Pack an app page. Exit code 1 if there are errors. Warnings are things\n  that run but probably do not do what you meant (a bridge used without its permission, localStorage, network calls).\n  With --strict they make the exit code 1, which is useful in scripts and before you pack.',
   pack: 'applet pack [folder] [out.applet]\n  Needs a manifest.json. Checks the app, then writes <folder-name>.applet (or out.applet).',

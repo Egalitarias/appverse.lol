@@ -141,3 +141,23 @@ test('the example app packs, and runs as a document', async () => {
   assert.ok(doc.includes('appverse.storage.get') && doc.includes('textarea { flex: 1'));
   assert.ok(!/\s(?:src|href)="(?!data:|#)/.test(doc.slice(doc.indexOf('<title>Notes'))));
 });
+
+test('saved data is kept under the hash of the package, so an app cannot claim another app\'s by id', async () => {
+  const { localStore } = await import('../js/sandbox.js');
+  const mem = new Map();
+  const storage = { getItem: (k) => mem.get(k) ?? null, setItem: (k, v) => mem.set(k, v) };
+  const hashA = 'a'.repeat(64), hashB = 'b'.repeat(64);
+
+  localStore(hashA, storage).save('lol.appverse.notes', 'secret');
+  assert.equal(localStore(hashA, storage).load('whatever.id'), 'secret', 'the same package gets its data back, whatever id it asks with');
+  assert.equal(localStore(hashB, storage).load('lol.appverse.notes'), null, 'a different package starts empty, even with the same id');
+
+  // data an older version kept under the declared id is never handed out
+  mem.set('appverse:storage:lol.appverse.notes', 'legacy');
+  assert.equal(localStore(hashB, storage).load('lol.appverse.notes'), null);
+  assert.deepEqual([...mem.keys()].filter((k) => k.includes('hash')), []);
+  assert.ok([...mem.keys()].every((k) => !k.includes('lol.appverse.notes') || k === 'appverse:storage:lol.appverse.notes'));
+
+  assert.throws(() => localStore('', storage), /slot/);
+  assert.throws(() => localStore(undefined, storage), /slot/);
+});

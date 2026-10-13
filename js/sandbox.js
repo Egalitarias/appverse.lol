@@ -253,8 +253,24 @@ export function createBridge(manifest, { store, copy = async () => {}, fullscree
   };
 }
 
-/** Mounts a running app into `container`. `saves` (optional) replaces where its storage goes: { load(id), save(id, data) }. */
-export function runApplet(manifest, files, container, { saves = null } = {}) {
+/**
+ * Where an app's saved data lives by default: this browser's localStorage, in a slot named after the SHA-256 of the package.
+ * It is not named after manifest.id, because the id is whatever the app's author wrote, so a package could claim another app's id
+ * and read or overwrite its data. A different package (a new version, or a copy someone edited) has a different hash and starts
+ * with an empty slot. The slot does not depend on what the app says about itself, so it cannot be claimed.
+ */
+export function localStore(hash, storage = globalThis.localStorage) {
+  if (typeof hash !== 'string' || hash.length < 8) throw new Error('Saved data needs a slot named after the package hash');
+  const key = `appverse:data:${hash}`;
+  return { load: () => storage.getItem(key), save: (_id, data) => storage.setItem(key, data) };
+}
+
+/**
+ * Mounts a running app into `container`. An app that has the storage permission needs somewhere to keep its data: `hash` is the
+ * SHA-256 of its package (see localStore), or `saves` ({ load(id), save(id, data) }) replaces the place altogether.
+ */
+export function runApplet(manifest, files, container, { saves = null, hash = null } = {}) {
+  if (!saves && !hash && manifest.permissions.includes('storage')) throw new Error('runApplet needs the package hash (or a place to save to) for an app that stores data');
   const frame = document.createElement('iframe');
   frame.setAttribute('sandbox', 'allow-scripts');
   if (manifest.permissions.includes('fullscreen')) frame.setAttribute('allow', 'fullscreen');
@@ -264,8 +280,7 @@ export function runApplet(manifest, files, container, { saves = null } = {}) {
   frame.height = manifest.height;
   frame.style.cssText = `width:${manifest.width}px;max-width:100%;height:auto;aspect-ratio:${manifest.width} / ${manifest.height};border:0;background:#fff`;
 
-  const storeKey = (id) => `appverse:storage:${id}`;
-  const store = saves ?? { load: (id) => localStorage.getItem(storeKey(id)), save: (id, data) => localStorage.setItem(storeKey(id), data) };
+  const store = saves ?? (hash ? localStore(hash) : null);
   const handlers = createBridge(manifest, {
     store,
     copy: (t) => navigator.clipboard.writeText(t),

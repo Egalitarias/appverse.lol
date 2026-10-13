@@ -27,21 +27,20 @@ CI runs them in `.github/workflows/browser.yml`, apart from the main tests.
   **control** page with no sandbox and no policy. Everything that happened is written to `.results/<engine>.json` (not committed).
 - `escape.spec.mjs`: one test per attack. In the sandbox it must not get out; on the control page each attack a browser can observe must
   get out. That second half is what makes the first one mean something: an attack that does not work on an open page proves nothing
-  when it fails in the sandbox. `storage.spec.mjs` asks what the per-app storage does and does not protect.
+  when it fails in the sandbox. `storage.spec.mjs` asks who can see an app's saved data: it belongs to the package (its SHA-256), never to the `id` the author wrote, so
+  no app can read another's by claiming its id.
 
 Attacks that wreck or navigate their own page (rewriting the document, `location = ...`, navigating the top page) run last, each on a fresh
 page, because a blocked navigation replaces the frame with an error page and ends the app's script.
 
 ## Known gaps
 
-A gap is listed in `KNOWN_GAPS` in `escape.spec.mjs` (or marked `test.fail` in `storage.spec.mjs`): the test passes while the gap is open
+A gap is listed in `KNOWN_GAPS` in `escape.spec.mjs`: the test passes while the gap is open
 and fails the day it closes, so the entry gets deleted then. Nothing else is allowed through.
 
 - **WebRTC in Chromium.** A content-security-policy does not cover WebRTC. An app can make the browser send UDP (STUN) packets to any
   address, which is a way to send data out. Not blocked today. In Firefox and WebKit the same attack does not reach the canary even with
   no sandbox, so it says nothing about them either way.
-- **Storage is keyed by the id an app declares for itself** (`manifest.id`), so a package can read and overwrite another app's saved data
-  by writing that app's id (for example `lol.appverse.notes`) in its manifest.
 
 ## Are the tests any good?
 

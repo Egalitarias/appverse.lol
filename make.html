@@ -57,6 +57,7 @@
     <p>Apps have no <code>localStorage</code> or cookies of their own (the sandbox has an opaque origin). With the <code>storage</code> permission, use the small bridge Appverse injects:</p>
     <pre><code>await appverse.storage.set("notes", JSON.stringify(notes));
 const saved = await appverse.storage.get("notes");</code></pre>
+    <p>Saved data stays with the exact file that saved it, not with the app's <code>id</code> (an id is only a name the author chose, so it cannot prove who wrote an app). Rebuild or edit the <code>.applet</code> and the new file starts with an empty store. <code>applet dev</code> keeps the data between saves while you work.</p>
 
     <h2>4. Check and pack</h2>
     <p>Easiest: drop the folder on <a href="pack.html">Pack an app</a>. It writes the manifest for you, checks the app, lets you test it in the sandbox and downloads the <code>.applet</code>. Or from the command line:</p>

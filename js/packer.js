@@ -114,7 +114,7 @@ export function lintApplet(manifest, files) {
 
   const notAllowed = disallowedFiles(files);
   if (notAllowed.length) add('error', `Remove: ${notAllowed.slice(0, 8).join(', ')}${notAllowed.length > 8 ? `, and ${notAllowed.length - 8} more` : ''}.`);
-  if (/^com\.example\./.test(manifest.id)) add('warn', `The id "${manifest.id}" is a placeholder. The id names the storage slot, so use your own, such as the reverse of a domain you own (com.mystudio.myapp).`);
+  if (/^com\.example\./.test(manifest.id)) add('warn', `The id "${manifest.id}" is a placeholder. Use your own, such as the reverse of a domain you own (com.mystudio.myapp).`);
   if (!manifest.license) add('info', 'No license is set. People will see "License: not specified".');
 
   let total = 0;

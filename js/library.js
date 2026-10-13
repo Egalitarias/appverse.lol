@@ -202,7 +202,7 @@ async function run(a) {
     const files = await readZip(await a.blob.arrayBuffer());
     $('stage').hidden = false;
     $('s-title').textContent = a.manifest.title;
-    running = runApplet(a.manifest, files, $('screen'));
+    running = runApplet(a.manifest, files, $('screen'), { hash: a.hash });
     $('full').hidden = !running.canFullscreen;
     $('stage').scrollIntoView({ block: 'nearest' });
   } catch (e) {

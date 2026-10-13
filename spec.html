@@ -42,7 +42,7 @@
     <h2>Permissions</h2>
     <div class="table-wrap"><table>
       <tr><th>Permission</th><th>Gives the app</th></tr>
-      <tr><td><code>storage</code></td><td><code>appverse.storage.get/set/remove</code>, a per-app key-value store kept in the visitor's browser.</td></tr>
+      <tr><td><code>storage</code></td><td><code>appverse.storage.get/set/remove</code>, a key-value store kept in the visitor's browser, belonging to that exact package: a new version starts empty, and an app cannot reach another's data by claiming its <code>id</code>.</td></tr>
       <tr><td><code>fullscreen</code></td><td>Ability to ask for fullscreen, on a user gesture.</td></tr>
       <tr><td><code>clipboard</code></td><td>Write to the clipboard, on a user gesture.</td></tr>
       <tr><td><code>network</code> (planned)</td><td>Requests to an allowlist of hosts declared in the manifest and shown to the user.</td></tr>

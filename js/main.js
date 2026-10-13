@@ -36,7 +36,8 @@ async function loadFile(file) {
     const manifest = validateManifest(raw);
     assertAppletPackage(manifest, files);
 
-    pending = { manifest, files };
+    const hash = await sha256Hex(buf);
+    pending = { manifest, files, hash };
     $('c-title').textContent = manifest.title;
     $('c-meta').textContent = [manifest.author && `by ${manifest.author}`, manifest.version && `v${manifest.version}`,
       `${files.size} files, ${(buf.byteLength / 1024).toFixed(1)} KB`].filter(Boolean).join(' · ');
@@ -45,7 +46,7 @@ async function loadFile(file) {
     $('c-perms').replaceChildren(...(manifest.permissions.length
       ? manifest.permissions.map((p) => li(PERMISSIONS[p]))
       : [li('Nothing special: just run, with no network and no saving.')]));
-    $('c-hash').textContent = await sha256Hex(buf);
+    $('c-hash').textContent = hash;
     hero.hidden = drop.hidden = true;
     card.hidden = false;
   } catch (err) {
@@ -55,12 +56,12 @@ async function loadFile(file) {
 
 $('run').onclick = () => {
   if (!pending) return;
-  const { manifest, files } = pending;
+  const { manifest, files, hash } = pending;
   try {
     card.hidden = true;
     stage.hidden = false;
     $('s-title').textContent = manifest.title;
-    running = runApplet(manifest, files, $('screen'));
+    running = runApplet(manifest, files, $('screen'), { hash });
     $('full').hidden = !running.canFullscreen;
   } catch (err) {
     reset();
