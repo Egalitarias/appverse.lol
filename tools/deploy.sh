@@ -15,12 +15,12 @@ npm test
 [ -z "$(git status --porcelain)" ] || { echo "Uncommitted changes; commit first." >&2; exit 1; }
 SHA=$(git rev-parse --short HEAD)
 
-# Everything tracked except tests/, TRADEMARK.md and CONTRIBUTING.md (drafts: remove them from the list below when they are final), the deploy files and dotfiles (tools/applet*.mjs and tools/pack-folder.mjs ARE served: the tools download on make.html zips them); the server has no git checkout. A build that already exists is identical and is reused.
+# Only the tracked files listed in tools/site-files.txt (a new file stays private until it is added there); the server has no git checkout. A build that already exists is identical and is reused.
 if ssh "$HOST" "[ -d $BASE/builds/$SHA ]"; then
   echo "Build $SHA is already on the server."
 else
   ssh "$HOST" "rm -rf $BASE/builds/$SHA.partial && mkdir -p $BASE/builds/$SHA.partial"
-  git ls-files | grep -vE '^(tests/|tools/(deploy\.sh|Caddyfile|build-examples\.mjs|pack\.mjs)$|docs/|TRADEMARK\.md$|CONTRIBUTING\.md$|\.|package\.json$)' | tar cf - -T - \
+  node tools/site-files.mjs | tar cf - -T - \
     | ssh "$HOST" "tar xf - -C $BASE/builds/$SHA.partial --no-same-owner && chmod -R a+rX $BASE/builds/$SHA.partial && mv $BASE/builds/$SHA.partial $BASE/builds/$SHA"
 fi
 

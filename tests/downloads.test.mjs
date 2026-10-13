@@ -7,6 +7,7 @@ import { join, dirname, resolve, posix } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { BUNDLES, buildBundle } from '../js/downloads.js';
 import { readZip } from '../js/zip.js';
+import { readSiteFiles } from '../tools/site-files.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const bundleFiles = (key) => BUNDLES[key].files.filter((f) => f.from);
@@ -22,12 +23,11 @@ async function build(key) {
 }
 
 test('every file a download names exists in the repo, and is one the deploy serves', () => {
-  const deploy = readFileSync(join(root, 'tools/deploy.sh'), 'utf8');
-  const excluded = new RegExp(deploy.match(/grep -vE '([^']+)'/)[1]);
+  const served = new Set(readSiteFiles().served);
   for (const key of Object.keys(BUNDLES)) {
     for (const { from } of bundleFiles(key)) {
       assert.ok(existsSync(join(root, from)), `${key}: ${from} is missing`);
-      assert.ok(!excluded.test(from), `${key}: ${from} is left out of the deploy, so the site could not serve it`);
+      assert.ok(served.has(from), `${key}: ${from} is left out of the deploy, so the site could not serve it`);
     }
   }
 });

@@ -29,7 +29,7 @@ The site is plain static files; there is no build step. This mirrors the setup o
 tools/deploy.sh
 ```
 
-Runs `npm test`, refuses to run with uncommitted changes, streams the tracked files (minus `tests/`, `tools/`, dotfiles) over `tar | ssh` into
+Runs `npm test`, refuses to run with uncommitted changes, streams the tracked files listed in `tools/site-files.txt` (a new file stays private until it is added there) over `tar | ssh` into
 `builds/<commit>`, and repoints `current` in one atomic step. The 5 newest builds and the live one are kept. Override the server with
 `DEPLOY_HOST` / `DEPLOY_BASE`. Caddy serves from disk, so content changes need no reload; reload only after editing the Caddyfile.
 

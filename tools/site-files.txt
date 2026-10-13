@@ -1,0 +1,32 @@
+# What https://appverse.lol serves. tools/deploy.sh uploads exactly the tracked files that match a line here and nothing else,
+# so a new file stays private until you add it. One entry per line:
+#   a path          that file
+#   a path ending / everything under that folder
+# tests/site-files.test.mjs checks this list against the pages, the sitemap and the downloads.
+
+# pages
+index.html
+library.html
+make.html
+pack.html
+privacy.html
+spec.html
+
+# site files
+style.css
+favicon.svg
+robots.txt
+sitemap.xml
+llms.txt
+LICENSE
+SECURITY.md
+
+# the site's code, the example apps and the starter
+js/
+examples/
+templates/
+
+# the tools that the "Download the tools" zip on make.html is built from
+tools/applet.mjs
+tools/applet-dev.mjs
+tools/pack-folder.mjs
