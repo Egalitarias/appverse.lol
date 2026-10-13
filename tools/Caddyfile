@@ -6,33 +6,8 @@
 appverse.lol {
 	encode gzip
 
-	# The access log is what analytics.html is built from (tools/analytics-report.mjs, see docs/analytics.md). It holds
-	# addresses, so it is kept for 14 days only; the report keeps just the daily totals.
-	log {
-		output file /var/log/caddy/appverse-access.log {
-			roll_size 20MiB
-			roll_keep 20
-			roll_keep_for 336h
-		}
-		format json
-	}
-
-	# The analytics page and its numbers ask for a password. The hash below is a placeholder: on the server only, put the
-	# output of `caddy hash-password` in its place (it is not a secret you keep in the repository).
-	@private path /analytics.html /analytics/*
-	basic_auth @private {
-		admin REPLACE_WITH_THE_OUTPUT_OF_caddy_hash-password
-	}
-
-	# The numbers live outside the deployed builds, so a deploy does not touch them: /analytics/data.json
-	handle_path /analytics/* {
-		root * /var/www/appverse-site/stats
-		file_server
-	}
-	handle {
-		root * /var/www/appverse-site/current
-		file_server
-	}
+	root * /var/www/appverse-site/current
+	file_server
 
 	# The page that runs apps. An app's document (an iframe srcdoc) INHERITS the page's Content-Security-Policy, and the
 	# app's scripts and styles are inlined into it (js/sandbox.js), so this page must allow 'unsafe-inline' and data: media.

@@ -80,30 +80,3 @@ button:disabled { opacity: .6; cursor: not-allowed; }
 .downloads p { margin: 8px 0; }
 .downloads button { margin: 0 6px 6px 0; }
 #dl-note { color: var(--bad); }
-/* analytics */
-main.analytics { max-width: 960px; }
-.chips { display: flex; flex-wrap: wrap; gap: 6px; }
-.chip { background: #3a3a4c; margin: 0; padding: 5px 14px; border-radius: 99px; font-size: 14px; }
-.chip[aria-pressed="true"] { background: var(--accent); }
-.msg { margin: 10px 0; padding: 8px 12px; border-radius: 8px; background: #3ecf8e22; border: 1px solid #3ecf8e66; }
-.msg.bad { background: #ff6b6b22; border-color: #ff6b6b66; color: var(--bad); }
-main.analytics .cards { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
-.card .value { font-size: 26px; font-weight: 700; font-variant-numeric: tabular-nums; }
-.card .label { color: var(--dim); font-size: 13px; }
-.chart svg { width: 100%; height: auto; display: block; }
-.chart .legend { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 13px; color: var(--dim); margin-top: 4px; }
-.chart .swatch { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; }
-.chart .axis { fill: var(--dim); font-size: 11px; }
-.chart .bar-a, .chart .swatch.bar-a { fill: var(--accent); background: var(--accent); }
-.chart .bar-b, .chart .swatch.bar-b { fill: #3ecf8e; background: #3ecf8e; }
-.chart .bar-c, .chart .swatch.bar-c { fill: #ffb84d; background: #ffb84d; }
-.chart .swatch { fill: none; }
-.chart .grid { stroke: #ffffff18; }
-.columns { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 0 28px; }
-.bars { list-style: none; margin: 0; padding: 0; }
-.bars li { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; padding: 5px 0; font-size: 14px; }
-.bars .track { grid-column: 1 / -1; height: 5px; border-radius: 3px; background: #ffffff14; overflow: hidden; }
-.bars .fill { display: block; height: 100%; background: var(--accent); }
-td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
-main.analytics table { width: 100%; }
-main.analytics h2 { margin-top: 28px; }

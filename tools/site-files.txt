@@ -11,7 +11,6 @@ make.html
 pack.html
 privacy.html
 spec.html
-analytics.html
 
 # site files
 style.css
