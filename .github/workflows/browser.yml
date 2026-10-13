@@ -4,7 +4,15 @@ on:
   push:
     branches: [main]
   pull_request:
+  # every Monday: a new Chrome, Firefox or Safari engine can change what the sandbox allows without any change here
+  schedule:
+    - cron: '17 6 * * 1'
   workflow_dispatch:
+    inputs:
+      latest:
+        description: 'Use the newest Playwright (and so the newest browsers) instead of the pinned one'
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -25,6 +33,12 @@ jobs:
           cache-dependency-path: tests/browser/package-lock.json
       # the only dependency in the project, kept in tests/browser so the site and `npm test` stay free of dependencies
       - run: npm ci
+      # Pushes use the pinned Playwright, so the same browsers every time and a failure means our change. The weekly run (or a manual run
+      # with "latest") takes the newest Playwright, which brings the newest browsers: a failure then means a new browser, or a Playwright change.
+      - name: Use the newest Playwright
+        if: github.event_name == 'schedule' || inputs.latest
+        run: npm install --no-save @playwright/test@latest
+      - run: npx playwright --version
       - run: npx playwright install --with-deps chromium firefox webkit
       - run: npx playwright test
       # what each engine did (the canary's hits, every report), so a failure can be read without running it again
