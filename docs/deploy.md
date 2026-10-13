@@ -1,6 +1,6 @@
 # Deploying appverse.lol
 
-The site is plain static files; there is no build step. This mirrors Gameverse's setup (`../gameverse.lol/docs/deploy.md`) without releases.
+The site is plain static files; there is no build step. This mirrors the setup of Gameverse (https://gameverse.lol), without releases.
 
 ## Server
 

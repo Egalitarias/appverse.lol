@@ -1,8 +1,10 @@
 # Appverse
 
+[![tests](https://github.com/Egalitarias/appverse.lol/actions/workflows/test.yml/badge.svg)](https://github.com/Egalitarias/appverse.lol/actions/workflows/test.yml)
+
 Run `.applet` app packages safely in the browser (https://appverse.lol).
 
-The apps sibling of [Gameverse](../gameverse.lol): a static website, no build step, no dependencies. An `.applet` is a zip with a
+The apps sibling of [Gameverse](https://gameverse.lol): a static website, no build step, no dependencies. An `.applet` is a zip with a
 `manifest.json` and the app's files, run in `<iframe sandbox="allow-scripts">` with no network and permissions the user sees first.
 
 ## Run the site
