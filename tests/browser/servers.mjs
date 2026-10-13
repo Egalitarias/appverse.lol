@@ -7,6 +7,7 @@
 import { createServer } from 'node:http';
 import { createSocket } from 'node:dgram';
 import { readFileSync, existsSync, statSync } from 'node:fs';
+import { networkInterfaces } from 'node:os';
 import { dirname, extname, join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -29,9 +30,12 @@ export function productionHeaders() {
   };
 }
 
-const listen = (server, kind) => new Promise((ok, fail) => {
+/** This machine's address on the network, if it has one: some browsers will not send WebRTC (STUN) traffic to a loopback address. */
+export const lanAddress = () => Object.values(networkInterfaces()).flat().find((i) => i && i.family === 'IPv4' && !i.internal)?.address ?? '127.0.0.1';
+
+const listen = (server, kind, host = '127.0.0.1') => new Promise((ok, fail) => {
   server.once('error', fail);
-  (kind === 'udp' ? server.bind(0, '127.0.0.1', () => ok(server.address().port)) : server.listen(0, '127.0.0.1', () => ok(server.address().port)));
+  (kind === 'udp' ? server.bind(0, host, () => ok(server.address().port)) : server.listen(0, host, () => ok(server.address().port)));
 });
 
 /** `pages` maps a path to extra test-only HTML (the unprotected control pages); they are served without any policy. */
@@ -60,7 +64,8 @@ export async function startSite(pages = {}) {
 /** What `/probe/<name>.ext?query` is called in the hit list: "name". */
 const nameOf = (url) => /^\/probe\/([^/?#.]+)/.exec(new URL(url, 'http://x').pathname)?.[1] ?? '(other)';
 
-export async function startCanary() {
+/** `udp` names the UDP ports to open, one per WebRTC attack, so a packet says which route it came through. */
+export async function startCanary({ udp = [] } = {}) {
   const hits = [];
   const server = createServer((req, res) => {
     const name = nameOf(req.url);
@@ -74,20 +79,25 @@ export async function startCanary() {
   server.on('upgrade', (req, socket) => { hits.push({ kind: 'ws', name: nameOf(req.url), url: req.url }); socket.destroy(); });
   const port = await listen(server);
 
-  // a UDP listener for WebRTC: STUN requests to it are traffic that a content-security-policy cannot stop
-  const udp = createSocket('udp4');
-  udp.on('message', (msg, from) => hits.push({ kind: 'udp', name: 'webrtc', bytes: msg.length, from: from.port }));
-  const udpPort = await listen(udp, 'udp');
+  // UDP listeners for WebRTC: STUN requests to them are traffic that a content-security-policy cannot stop
+  const sockets = {};
+  for (const name of udp) {
+    const socket = createSocket('udp4');
+    socket.on('message', (msg, from) => hits.push({ kind: 'udp', name, bytes: msg.length, from: from.port }));
+    sockets[name] = { socket, port: await listen(socket, 'udp', '0.0.0.0') };
+  }
+  const udpPorts = Object.fromEntries(Object.entries(sockets).map(([name, s]) => [name, s.port]));
 
   return {
     url: `http://127.0.0.1:${port}`,
-    udpPort,
+    udpPorts,
+    udpHost: lanAddress(),
     hits,
     reset: () => { hits.length = 0; },
     /** The HTTP and WebSocket requests that carried this probe's name. */
     named: (name) => hits.filter((h) => (h.kind === 'http' || h.kind === 'ws') && h.name === name),
     /** Contacts that have no path: a bare connection or a UDP packet. */
     bare: () => hits.filter((h) => h.kind === 'tcp' || h.kind === 'udp'),
-    close: () => new Promise((ok) => { udp.close(); server.closeAllConnections(); server.close(ok); }),
+    close: () => new Promise((ok) => { for (const { socket } of Object.values(sockets)) socket.close(); server.closeAllConnections(); server.close(ok); }),
   };
 }

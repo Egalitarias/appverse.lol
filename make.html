@@ -69,7 +69,8 @@ applet dev my-app              # open it in the sandbox, reload on save</code></
 
     <h2>What does not work</h2>
     <ul>
-      <li>Network access of any kind: <code>fetch</code>, WebSocket, WebRTC, remote images, fonts, scripts or stylesheets.</li>
+      <li>Network access of any kind: <code>fetch</code>, WebSocket, WebRTC (<code>RTCPeerConnection</code> does not exist in the sandbox), remote images, fonts, scripts or stylesheets.</li>
+      <li>Frames and <code>document.write</code>: <code>&lt;iframe&gt;</code> in the page, <code>iframe.srcdoc</code> and HTML that mentions a frame are refused. A frame would be a second page that the sandbox could not control. Build the page with the DOM (<code>createElement</code>, and <code>innerHTML</code> for ordinary markup). Script made from a string, such as a <code>javascript:</code> URL, is refused too.</li>
       <li>Popups, navigating the page away, service workers, <code>localStorage</code>, cookies and <code>document.domain</code>.</li>
       <li>A <code>Content-Security-Policy</code> of your own: Appverse injects one and rejects packages that ship another.</li>
     </ul>

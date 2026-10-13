@@ -10,7 +10,7 @@ import { productionHeaders } from './servers.mjs';
  * while it does, and fails the day it stops (then delete the entry, because the gap is closed). Nothing else may get through.
  */
 const KNOWN_GAPS = {
-  webrtc: { chromium: 'WebRTC is not covered by a content-security-policy: an app can send UDP (STUN) packets to any address, and encode data in them' },
+  // none at the moment. Shape: probeName: { chromium: 'why it gets through' }
 };
 
 const cache = new Map();
@@ -22,8 +22,8 @@ const results = (info) => {
 const gapFor = (probe, engine) => KNOWN_GAPS[probe]?.[engine];
 const named = (hits, name) => hits.filter((h) => (h.kind === 'http' || h.kind === 'ws') && h.name === name);
 const byKind = (kind) => PROBES.filter((p) => p.kind === kind);
-/** What a probe got through to: the canary's hits for it, the UDP packets (webrtc), or the requests that reached the site's own server. */
-const reached = (p, data) => (p.origin === 'site' ? named(data.siteHits, p.name) : p.name === 'webrtc' ? data.hits.filter((h) => h.kind === 'udp') : named(data.hits, p.name));
+/** What a probe got through to: the canary's hits for it, the UDP packets sent to its own port, or the requests that reached the site's own server. */
+const reached = (p, data) => (p.origin === 'site' ? named(data.siteHits, p.name) : p.udp ? data.hits.filter((h) => h.kind === 'udp' && h.name === p.name) : named(data.hits, p.name));
 
 // ================================================================================================================================
 test.describe('the sandbox, as a hostile app with no permissions', () => {

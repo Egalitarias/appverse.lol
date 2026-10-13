@@ -38,15 +38,35 @@ page, because a blocked navigation replaces the frame with an error page and end
 A gap is listed in `KNOWN_GAPS` in `escape.spec.mjs`: the test passes while the gap is open
 and fails the day it closes, so the entry gets deleted then. Nothing else is allowed through.
 
-- **WebRTC in Chromium.** A content-security-policy does not cover WebRTC. An app can make the browser send UDP (STUN) packets to any
-  address, which is a way to send data out. Not blocked today. In Firefox and WebKit the same attack does not reach the canary even with
-  no sandbox, so it says nothing about them either way.
+None at the moment.
+
+### WebRTC, and why the sandbox also refuses frames
+
+A content-security-policy does not cover WebRTC, so an app could make the browser send UDP (STUN) packets to any address and put data
+in them. Chromium and Firefox both did, until the sandbox page was changed (`GUARD` in `js/sandbox.js`):
+
+1. The page loses `RTCPeerConnection` (and the prefixed names), and the property is locked.
+2. That is not enough on its own. A frame the app makes (`iframe.srcdoc` is allowed by `frame-src 'none'`) is a new page with its own,
+   untouched copy of the API, and the sandbox cannot reach into it. So a Trusted Types policy (the app's policy requires it for
+   `'script'`, with one policy named `default`) refuses every way for a string to become a frame: the `srcdoc` property and
+   attribute, HTML that mentions a frame, `document.write` (a tag can be written in two pieces), and script from a string (a
+   `javascript:` URL). A frame written into the package's own page is made by the HTML parser, which no policy sees, so packing refuses it.
+3. The 22 attacks in `probes.mjs` named `webrtc*` each have a UDP port of their own on the canary, so a packet says which route it
+   took: the constructor, its prefixed name, a worker, nested frames made nine different ways, parse-time writes, and trying to get the
+   original constructor back.
+
+What the engines can show: the canary's STUN address is this machine's network address (some browsers will not send STUN to a loopback
+address). Chromium and Firefox send packets on the control page, so there a "nothing reached the canary" result means something.
+**The WebKit that Playwright runs has no WebRTC at all** (`RTCPeerConnection` is undefined), so nothing can be observed there; real
+Safari has it, and the same guard applies to it.
 
 ## Are the tests any good?
 
 They were checked by breaking the sandbox on purpose. With the network allowed in both the app's policy and the page's policy, the
 network attacks failed the tests; with the `sandbox` attribute loosened, the popup and storage checks failed; with the app's own policy
-tag removed, every attack that reaches back to the site's own origin failed in all three engines. (The page's own policy and the app's
+tag removed, every attack that reaches back to the site's own origin failed in all three engines. For WebRTC: with the
+constructors left in, the direct, prefixed and restore routes failed; with the Trusted Types directives removed from the policy, or with
+a policy that lets every string through, all the nested-frame routes failed (13 failures) in Chromium and in Firefox. (The page's own policy and the app's
 policy overlap, so one of them alone is not enough to show a gap: that is why the same-origin attacks exist.) Do the same when you change
 `js/sandbox.js` or `tools/Caddyfile`.
 

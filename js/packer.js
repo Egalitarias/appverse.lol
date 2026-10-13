@@ -128,6 +128,7 @@ export function lintApplet(manifest, files) {
     if (!uses[p] && perms.includes(p)) add('info', `The manifest asks for "${p}" but the app never uses it. People are shown every permission, so remove what you do not need.`);
   }
   if (/\blocalStorage\b|\bsessionStorage\b|\bindexedDB\b|document\.cookie/.test(src)) add('warn', 'The app uses localStorage, sessionStorage, IndexedDB or cookies, which do not work in the sandbox. Use appverse.storage (with the "storage" permission) instead.');
+  if (/document\.write(?:ln)?\s*\(|\.srcdoc\b|\bsrcdoc\s*=/.test(src)) add('warn', 'The app uses document.write or an iframe srcdoc. Apps cannot make frames or use document.write (they are refused), so build the page with the DOM instead.');
   if (/\bfetch\s*\(|XMLHttpRequest|\bWebSocket\b|\bEventSource\b|sendBeacon/.test(src)) add('warn', 'The app seems to use the network (fetch, XMLHttpRequest, WebSocket or similar). Apps have no network access, so these calls will fail. Put data in the package instead.');
   for (const [name, data] of files) {
     if (/\.js$/i.test(name) && /^\s*import\s[^;]*\sfrom\s+["']/m.test(dec.decode(data))) add('warn', 'This file uses ES module imports, which do not work here. Bundle your JavaScript into plain scripts.', name);

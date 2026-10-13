@@ -26,6 +26,11 @@ export const CSP = [
   "frame-src 'none'",
   "form-action 'none'",
   "base-uri 'none'",
+  // every place a string becomes HTML or script goes through the policy the shim installs (see GUARD): that is what keeps an app from
+  // making a frame, which would be a new page with its own untouched copy of everything the shim removes. Engines without Trusted
+  // Types ignore these two.
+  "require-trusted-types-for 'script'",
+  'trusted-types default',
 ].join('; ');
 
 export const MAX_STORAGE_BYTES = 256 * 1024;
@@ -34,7 +39,35 @@ const MAX_COPY = 100 * 1024;
 const text = new TextDecoder();
 const encoder = new TextEncoder();
 
-// Runs inside the app iframe. __APPLET_MANIFEST__ is replaced by the manifest as JSON.
+// Runs inside the app iframe before any of the app's own code.
+//
+// WebRTC is the one way out that no content-security-policy covers: an app could make the browser send UDP packets (STUN) to any
+// address, and put data in them. So this page loses the API. That alone is not enough, because a frame the app made would have its
+// own page with its own untouched copy, and the sandbox cannot reach into it (each frame has an opaque origin of its own). A
+// content-security-policy does not stop srcdoc frames, so the Trusted Types policy below refuses every way for a string to become a
+// frame: the srcdoc property and attribute, HTML that mentions a frame, document.write (which can build a tag out of two pieces),
+// and script from a string (a javascript: URL). Frames written into the app's own HTML are refused when it is packed (buildDocument).
+const GUARD = `(() => {
+  for (const name of ['RTCPeerConnection', 'webkitRTCPeerConnection', 'mozRTCPeerConnection']) {
+    try { delete window[name]; } catch (e) { /* not configurable: the next line covers it */ }
+    try { Object.defineProperty(window, name, { value: undefined, writable: false, configurable: false }); } catch (e) { /* already locked */ }
+  }
+  if (!window.trustedTypes || !trustedTypes.createPolicy) return;
+  const no = (what) => { throw new TypeError('Appverse apps cannot ' + what + '.'); };
+  const FRAMES = /iframe|srcdoc|<\\s*\\/?\\s*(?:frame|frameset|fencedframe|portal)\\b/i;
+  trustedTypes.createPolicy('default', {
+    createHTML: (html, type, sink) => {
+      if (/^HTMLIFrameElement /.test(sink)) no('make frames');
+      if (/^Document write/.test(sink)) no('use document.write: build the page with the DOM instead');
+      if (FRAMES.test(html)) no('make frames');
+      return html;
+    },
+    createScript: (script, type, sink) => (/^HTMLScriptElement /.test(sink) ? script : no('run script from a string')),
+    createScriptURL: (url, type, sink) => (sink === 'Worker constructor' && /^blob:/.test(url) ? url : no('load a script from a URL')),
+  });
+})();`;
+
+// The bridge. __APPLET_MANIFEST__ is replaced by the manifest as JSON.
 const SHIM = `(() => {
   const pending = new Map(); let n = 0;
   const call = (type, extra) => new Promise((res, rej) => {
@@ -186,15 +219,22 @@ export function inlineHtml(files, path, html) {
   });
 }
 
-/** Builds the document that runs an app. The CSP and the bridge come first; the app's own page follows. */
+const FRAME_TAG = /<\s*(?:iframe|frame|frameset|fencedframe|portal)\b/i;
+
+/** Builds the document that runs an app. The CSP, the guard and the bridge come first; the app's own page follows. */
 export function buildDocument(manifest, files) {
   assertAppletPackage(manifest, files);
   const shim = SHIM.replace('__APPLET_MANIFEST__', () => jsonForScript(manifest));
   const page = inlineHtml(files, manifest.entry, text.decode(files.get(manifest.entry)));
+  // A frame written into the page is made by the HTML parser, which no policy sees, so it is refused here instead. The whole page is
+  // searched, scripts and styles included: a tag has to be spelled out to exist, and a search of the finished text cannot be fooled by
+  // what a parser would have thought was a script or a comment.
+  if (FRAME_TAG.test(page)) throw new Error(`${manifest.entry} contains a frame (<iframe>, <frame>, <frameset>...), which apps cannot use. Build the page with the DOM instead`);
   // The page's own <!doctype>, <html> and <head> tags that follow are ignored by the parser (we left <head> open), and its
   // content lands in the head and body as usual.
   return `<!doctype html><html><head><meta charset="utf-8">
 <meta http-equiv="Content-Security-Policy" content="${CSP}">
+<script>${GUARD}</script>
 <script>${shim}</script>
 ${page}`;
 }

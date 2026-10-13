@@ -52,6 +52,7 @@
     <ul>
       <li>The package is read and unpacked in the browser; nothing is uploaded. The zip reader rejects path traversal, duplicate names, encrypted or zip64 entries, bad CRCs, entries larger than declared, and packages over the file-count and size caps.</li>
       <li>The app runs in <code>&lt;iframe sandbox="allow-scripts"&gt;</code>, with no <code>allow-same-origin</code>, popups or top navigation, so it has an opaque origin and cannot touch the host page, cookies or storage.</li>
+      <li>WebRTC is the one network route that a content-security-policy does not cover, so the sandbox removes <code>RTCPeerConnection</code> and refuses the ways an app could make a frame (a frame would have its own, untouched copy): <code>iframe.srcdoc</code>, HTML that mentions a frame, <code>document.write</code>, script made from a string, and frames written into the package's page. This uses Trusted Types, which Chromium, Firefox and Safari all support.</li>
       <li>In production the frame is served from a separate origin (for example <code>*.appverse-apps.lol</code>) so a sandbox escape does not reach the main site.</li>
       <li>Appverse rewrites the entry HTML on load and inserts a CSP <code>&lt;meta&gt;</code> as the first element of <code>&lt;head&gt;</code>:
         <pre><code>default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob:;

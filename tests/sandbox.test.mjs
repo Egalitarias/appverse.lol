@@ -161,3 +161,18 @@ test('saved data is kept under the hash of the package, so an app cannot claim a
   assert.throws(() => localStore('', storage), /slot/);
   assert.throws(() => localStore(undefined, storage), /slot/);
 });
+
+test('WebRTC: the sandbox page loses the API and cannot make a frame that would bring it back', () => {
+  assert.ok(CSP.includes("require-trusted-types-for 'script'") && CSP.includes('trusted-types default'), 'Trusted Types are required');
+  const doc = buildDocument(manifest(), pkg({ 'manifest.json': '{}', 'index.html': '<p id="app-start">hi</p>' }));
+  const guard = doc.indexOf('RTCPeerConnection');
+  assert.ok(guard > doc.indexOf('Content-Security-Policy') && guard < doc.indexOf('window.appverse') && guard < doc.indexOf('app-start'), 'the guard comes after the policy and before the bridge and the app');
+  for (const name of ['RTCPeerConnection', 'webkitRTCPeerConnection', 'mozRTCPeerConnection', 'createPolicy', 'HTMLIFrameElement', 'Document write']) assert.ok(doc.includes(name), name);
+
+  // a frame written into the page is made by the HTML parser, which no policy sees: the build refuses it, however it is spelled
+  for (const tag of ['<iframe srcdoc="x"></iframe>', '<IFRAME src=x>', '< iframe>', '<frameset></frameset>', '<script>var s = "<iframe>"</script>']) {
+    assert.throws(() => buildDocument(manifest(), pkg({ 'manifest.json': '{}', 'index.html': tag })), /frame/, tag);
+  }
+  // the word on its own is fine
+  buildDocument(manifest(), pkg({ 'manifest.json': '{}', 'index.html': '<p>An iframe is a frame.</p>' }));
+});

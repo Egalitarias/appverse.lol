@@ -2,7 +2,7 @@
 // global setup calls this once per engine and writes the result to .results/<engine>.json; the spec only reads that, so a failing
 // check never makes Playwright restart a worker and repeat the minute-long run.
 import { startSite, startCanary } from './servers.mjs';
-import { PROBES, probePage } from './probes.mjs';
+import { PROBES, UDP_PROBES, probePage } from './probes.mjs';
 import { buildZip } from '../../js/zipwrite.js';
 
 const enc = new TextEncoder();
@@ -12,7 +12,7 @@ async function appletWithProbes(canary, opts) {
   const manifest = { applet: 1, id: 'test.escape', title: 'Escape attempts', entry: 'index.html', width: 480, height: 360, permissions: [] };
   const zip = buildZip([
     ['manifest.json', enc.encode(JSON.stringify(manifest))],
-    ['index.html', enc.encode(probePage({ canary: canary.url, udpPort: canary.udpPort, site: opts.siteUrl, ...opts }))],
+    ['index.html', enc.encode(probePage({ canary: canary.url, udpPorts: canary.udpPorts, udpHost: canary.udpHost, site: opts.siteUrl, ...opts }))],
   ]);
   return Buffer.from(await zip.arrayBuffer());
 }
@@ -51,7 +51,7 @@ async function waitFor(fn, ms = 40_000) {
 const cookieNames = async (context, url) => (await context.cookies(url)).map((c) => c.name).sort();
 
 async function sandboxed(browser) {
-  const canary = await startCanary();
+  const canary = await startCanary({ udp: UDP_PROBES });
   const site = await startSite();
   const w = await watch(browser, site.url);
   const hostUrl = `${site.url}/index.html`;
@@ -88,8 +88,8 @@ async function sandboxed(browser) {
 }
 
 async function control(browser) {
-  const canary = await startCanary();
-  const site = await startSite({ '/__control/probe.html': probePage({ canary: canary.url, udpPort: canary.udpPort, site: null }) });
+  const canary = await startCanary({ udp: UDP_PROBES });
+  const site = await startSite({ '/__control/probe.html': probePage({ canary: canary.url, udpPorts: canary.udpPorts, udpHost: canary.udpHost, site: null }) });
   const w = await watch(browser, site.url);
   // a page that never finishes loading (streams, workers, frames) must not hold us up: wait for the probes, not for "load"
   await w.page.goto(`${site.url}/__control/probe.html?group=main`, { waitUntil: 'commit' });
