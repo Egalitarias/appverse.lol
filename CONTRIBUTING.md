@@ -20,8 +20,9 @@ The code runs in browsers and in Node 20+, with **no dependencies and no build s
 ## Reporting a security problem
 
 The sandbox is the point of the project, so please **do not open a public issue** for a way out of it (reading the page, running network code, reaching
-storage, escaping the iframe, getting round the CSP, a zip or manifest that is not rejected). Write to GaryDaviesHome@Gmail.com with the steps to reproduce. We will
-reply, fix it and credit you if you wish. Other bugs are fine as normal issues.
+storage, escaping the iframe, getting round the CSP, a zip or manifest that is not rejected). Use the **Report a vulnerability** button on the
+[Security tab](https://github.com/Egalitarias/appverse.lol/security/advisories/new), or write to GaryDaviesHome@Gmail.com, with the steps to reproduce.
+See [SECURITY.md](SECURITY.md) for what is in scope and what to expect. Other bugs are fine as normal issues.
 
 ## Before you start
 

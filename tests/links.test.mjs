@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
 
 const root = new URL('../', import.meta.url);
-const docs = ['README.md', 'CONTRIBUTING.md', 'TRADEMARK.md', ...readdirSync(new URL('docs/', root)).map((n) => `docs/${n}`)];
+const docs = ['README.md', 'CONTRIBUTING.md', 'TRADEMARK.md', 'SECURITY.md', ...readdirSync(new URL('docs/', root)).map((n) => `docs/${n}`)];
 
 test('documents link to real addresses, not to folders on one computer', () => {
   for (const f of docs) {
